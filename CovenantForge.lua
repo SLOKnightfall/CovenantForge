@@ -39,7 +39,7 @@ local DB_Defaults = {
 		}
 	},
 }
-local WEIGHT_BASE = 35.3
+local WEIGHT_BASE = 37.75
 
 --ACE3 Option Handlers
 local optionHandler = {}
@@ -95,7 +95,7 @@ local options = {
 
 				ShowAsPercent = {
 					order = 1.2,
-					name = L["Show Weight as Ppercent"],
+					name = L["Show Weight as Percent"],
 					type = "toggle",
 					width = 1.3,
 					arg = "ShowAsPercent",

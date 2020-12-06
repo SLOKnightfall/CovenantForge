@@ -6,6 +6,12 @@ if not L then return end
 _G["BINDING_HEADER_COVENANTFORGE"] = addonName
 _G["BINDING_NAME_COVENANTFORGE_BINDING_TOGGLE_SOULBINDS"] = "Toggle Soulbind Viewer"
 
+--Options
+L["General Options"] = true
+L["Show Soulbind Name"] = true
+L["Show Node Ability Names"] = true
+L["Show Weight as Percent"] = true
+
 
 L["PR"] = "Pre Raid"
 L["T26"] = "Tier 26"
