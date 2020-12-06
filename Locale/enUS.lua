@@ -9,4 +9,6 @@ _G["BINDING_NAME_COVENANTFORGE_BINDING_TOGGLE_SOULBINDS"] = "Toggle Soulbind Vie
 
 L["PR"] = "Pre Raid"
 L["T26"] = "Tier 26"
+--L["Base: %s/%s\nCurrent: %s/%s\nMax Total: %s"] = true
+L["Base: %s/%s\nCurrent: %s/%s"] = true
 

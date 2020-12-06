@@ -134,13 +134,29 @@ end
 function addon:EventHandler(event, arg1 )
 	if event == "ADDON_LOADED" and arg1 == "Blizzard_Soulbinds" then 
 		addon:Hook(SoulbindViewer, "Open", function()  C_Timer.After(.05, function() addon:Update() end) end , true)
+		--addon:Hook(SoulbindViewer, "OnShow", function()  print("OSS") end , true)
+
+	--	addon:Hook(SoulbindViewer, "OnHide", function() print("OHH") end , true)
+
+		--SoulbindViewerMixin:OnShow()
 		C_Timer.After(.05, function() addon.Init:CreateSoulbindFrames() end)
 		addon:UnregisterEvent("ADDON_LOADED")
 	end
 
 end
 
-
+local SoulbindConduitNodeEvents =
+{
+	"SOULBIND_CONDUIT_INSTALLED",
+	"SOULBIND_CONDUIT_UNINSTALLED",
+	"SOULBIND_PENDING_CONDUIT_CHANGED",
+	"SOULBIND_CONDUIT_COLLECTION_UPDATED",
+	"SOULBIND_CONDUIT_COLLECTION_REMOVED",
+	"SOULBIND_CONDUIT_COLLECTION_CLEARED",
+	"PLAYER_SPECIALIZATION_CHANGED",
+	"SOULBIND_NODE_LEARNED",
+	"SOULBIND_PATH_CHANGED",
+}
 
 function addon:OnEnable()
 	addon:BuildWeightData()
@@ -152,10 +168,14 @@ local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,2
 
 function addon.Init:CreateSoulbindFrames()
 	local frame = CreateFrame("Frame", "CovForge_events", SoulbindViewer)
-	frame:SetScript("OnShow", addon.OnShow)
-	frame:SetScript("OnShow", addon.OnHide)
+	
+	frame:SetScript("OnShow", function() FrameUtil.RegisterFrameForEvents(frame, SoulbindConduitNodeEvents) end)
+	frame:SetScript("OnHide", function() FrameUtil.UnregisterFrameForEvents(frame, SoulbindConduitNodeEvents) end)
+	frame:SetScript("OnEvent", addon.Update)
+	--frame:Show()
+	FrameUtil.RegisterFrameForEvents(frame, SoulbindConduitNodeEvents);
 	local covenantID = C_Covenants.GetActiveCovenantID();
-	local soulbindID = C_Soulbinds.GetActiveSoulbindID();
+	--local soulbindID = C_Soulbinds.GetActiveSoulbindID();
 
 	local spec = GetSpecialization()
 	local specID, specName = GetSpecializationInfo(spec)
@@ -166,17 +186,17 @@ function addon.Init:CreateSoulbindFrames()
 		addon:Hook(button, "OnSelected", function() addon:Update() end , true)
 
 		local f = CreateFrame("Frame", "CovForge_Souldbind"..buttonIndex, button, "CovenantForge_SoulbindInfoTemplate")
-		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(buttonIndex).name)
+		local soulbindID = button:GetSoulbindID()
+		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
+		local nodeTotal, conduitTotal = addon:GetSoulbindWeight(soulbindID)
+		f.soulbindWeight:SetText(nodeTotal + conduitTotal .. "["..nodeTotal.."]" )
 		button.ForgeInfo = f
 	end
 
 	for buttonIndex, nodeFrame in pairs(SoulbindViewer.Tree:GetNodes()) do
-		
 		local f = CreateFrame("Frame", "CovForge_Conduit"..buttonIndex, nodeFrame, "CovenantForge_ConduitInfoTemplate")
 		nodeFrame.ForgeInfo = f
 	end
-
-	addon:Update()
 
 	local _, _, classID = UnitClass("player")
 	local classSpecs = CLASS_SPECS[classID]
@@ -186,10 +206,11 @@ function addon.Init:CreateSoulbindFrames()
 		dropdownList[ID] = specName
 	end
 
+	--Spec Selection Dropdown
 	local frame = AceGUI:Create("SimpleGroup")
 	frame:SetHeight(20)
-	frame:SetWidth(150)
-	frame:SetPoint("TOP",SoulbindViewer,"TOP", 70, -35)
+	frame:SetWidth(125)
+	frame:SetPoint("TOP",SoulbindViewer,"TOP", 105, -33)
 	frame:SetLayout("Fill")
 	local dropdown = AceGUI:Create("Dropdown")
 	frame:AddChild(dropdown)
@@ -198,35 +219,39 @@ function addon.Init:CreateSoulbindFrames()
 	local specID = GetSpecializationInfo(spec)
 	dropdown:SetValue(specID)
 	dropdown:SetCallback("OnValueChanged", function(self,event, key) viewed_spec = key; addon:Update() end)
+
+	local f = CreateFrame("Frame", "CovForge_WeightTotal", SoulbindViewer, "CovenantForge_WeightTotalTemplate")
+	addon.CovForge_WeightTotalFrame = f
+	f:ClearAllPoints()
+	f:SetPoint("BOTTOM",SoulbindViewer.ActivateSoulbindButton,"BOTTOM", 0, 25)
+
+	addon:Update()
 end
 
-local SoulbindConduitNodeEvents =
-{
-	"SOULBIND_CONDUIT_INSTALLED",
-	"SOULBIND_CONDUIT_UNINSTALLED",
-	"SOULBIND_PENDING_CONDUIT_CHANGED",
-}
-
-function addon:OnShow()
-	FrameUtil.RegisterFrameForEvents("CovForge_events", SoulbindConduitNodeEvents);
-end
-
-
-function addon:Onhide()
-	FrameUtil.UnregisterFrameForEvents("CovForge_events", SoulbindConduitNodeEvents);
-end
-
---function SoulbindConduitNodeMixin:OnShow()
-	--FrameUtil.RegisterFrameForEvents(self, SoulbindConduitNodeEvents);
 
 --Updates Weight Values & Names
 function addon:Update()
 	local spec = GetSpecialization()
 	local specID, specName = GetSpecializationInfo(spec)
-	local soulbindID = Soulbinds.GetOpenSoulbindID() or C_Soulbinds.GetActiveSoulbindID();
+	local curentsoulbindID = Soulbinds.GetOpenSoulbindID() or C_Soulbinds.GetActiveSoulbindID();
+
+
+	for buttonIndex, button in ipairs(SoulbindViewer.SelectGroup.buttonGroup:GetButtons()) do
+		local f = button.ForgeInfo
+		local soulbindID = button:GetSoulbindID()
+		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
+		local selectedNodeTotal, unlockedMax, nodeMax, selectedConduitTotal, unlockedConduit, conduitMax = addon:GetSoulbindWeight(soulbindID)
+		--local nodeTotal, conduitTotal, selectedTotal, unlockedConduitTotal = addon:GetSoulbindWeight(soulbindID)
+		local totalValue = selectedNodeTotal + selectedConduitTotal
+		f.soulbindWeight:SetText(totalValue .. "("..nodeMax+conduitMax..")" )
+
+		if curentsoulbindID == soulbindID then 
+			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Base: %s/%s\nCurrent: %s/%s"]:format(unlockedMax, nodeMax, selectedNodeTotal + selectedConduitTotal, conduitMax + unlockedMax))
+		end
+
+	end
 
 	for buttonIndex, nodeFrame in pairs(SoulbindViewer.Tree:GetNodes()) do
-		
 		local f = nodeFrame.ForgeInfo
 		if not f then		
 			f = CreateFrame("Frame", "CovForge_Conduit"..buttonIndex, nodeFrame, "CovenantForge_ConduitInfoTemplate")
@@ -265,8 +290,6 @@ function addon:Update()
 			weight = addon:GetTalentWeight(spellID, viewed_spec)
 		end
 
-
-
 		if weight then 
 			local sign = "+"
 			if weight > 0 then 
@@ -286,7 +309,6 @@ function addon:Update()
 		end
 	end
 
-
 	for conduitType, conduitData in ipairs(SoulbindViewer.ConduitList:GetLists()) do
 		for conduitButton in SoulbindViewer.ConduitList.ScrollBox.ScrollTarget.Lists[conduitType].pool:EnumerateActive() do
 			conduitButton.ItemLevel:SetText(conduitItemLevel);
@@ -301,21 +323,17 @@ function addon:Update()
 						conduitButton.ItemLevel:SetText(conduitItemLevel..GREEN_FONT_COLOR_CODE.." (+"..percent.."%)");
 					elseif percent < 0 then 
 						conduitButton.ItemLevel:SetText(conduitItemLevel..RED_FONT_COLOR_CODE.." ("..percent.."%)");
-
 					end
 				else
-
 					if weight > 0 then 
 						conduitButton.ItemLevel:SetText(conduitItemLevel..GREEN_FONT_COLOR_CODE.." (+"..weight..")");
 					elseif weight < 0 then 
 						conduitButton.ItemLevel:SetText(conduitItemLevel..RED_FONT_COLOR_CODE.." ("..weight..")");
-
 					end
 				end
 			else 
 				conduitButton.ItemLevel:SetText(conduitItemLevel);
 			end
-
 		end
 	end
 end
@@ -349,14 +367,12 @@ function addon:BuildWeightData()
 
 		end
 	end
-	
 end
 
 
 function addon:GetWeightData(conduitID, specID)
 	local soulbindName = addon.Conduits[conduitID][1]
 	local collectionData  = C_Soulbinds.GetConduitCollectionData(conduitID)
-
 	local conduitItemLevel = collectionData.conduitItemLevel
 
 	if Weights[specID][soulbindName] then 
@@ -375,6 +391,94 @@ function addon:GetTalentWeight(spellID, specID)
 	end
 
 	return nil
+end
+
+
+function addon:GetSoulbindWeight(soulbindID)
+	local data = C_Soulbinds.GetSoulbindData(soulbindID)
+	local tree = data.tree.nodes
+	local maxNodeWeights = {}
+	local selectedNodeWeight = {}
+	local maxConduitWeights = {}
+	local selectedConduitWeights = {}
+
+	local unlockedNodeWeights = {}
+	local unlockedConduitWeights = {}
+	local selectedWeight = {}
+	local possibleWeights = {}
+
+	for i, data in ipairs(tree) do
+
+		local row = data.row  --RowID starts at 0
+		local conduitID = data.conduitID
+		local spellID = data.spellID
+		local state = data.state
+		local weight
+		local maxTable
+		local selectedTable
+		local unlockedTable
+		
+		if conduitID == 0 then
+			weight = addon:GetTalentWeight(spellID, viewed_spec)
+			maxTable = maxNodeWeights
+			selectedTable = selectedNodeWeight
+			unlockedTable = unlockedNodeWeights
+		else
+			weight = addon:GetWeightData(conduitID, viewed_spec)
+			maxTable = maxConduitWeights
+			selectedTable = selectedConduitWeights
+			unlockedTable = unlockedConduitWeights
+		end
+
+		if weight and state == 3 then
+			selectedTable[row] = weight
+		end
+
+		unlockedTable[row] = unlockedTable[row] or 0
+		if weight and state ~= 0 and  weight >= unlockedTable[row] then
+			unlockedTable[row] = weight
+		end
+
+		maxTable[row] = maxTable[row] or 0
+		if weight and weight >= maxTable[row] then
+			maxTable[row] = weight
+		end
+	end
+
+	local selectedNodeTotal = 0
+	for i, value in pairs(selectedNodeWeight) do
+		selectedNodeTotal = selectedNodeTotal + value
+	end
+
+	local unlockedMax = 0
+	for i, value in pairs(unlockedNodeWeights) do
+		unlockedMax = unlockedMax + value
+	end
+
+	local unlockedConduit = 0
+	for i, value in pairs(unlockedConduitWeights) do
+		unlockedConduit = unlockedConduit + value
+	end
+
+	local nodeMax = 0
+	for i, value in pairs(maxNodeWeights) do
+		nodeMax = nodeMax + value
+	end
+
+
+	local conduitMax = 0
+	for i, value in pairs(maxConduitWeights) do
+		conduitMax = conduitMax + value
+	end
+
+	local selectedConduitTotal = 0
+	for i, value in pairs(selectedConduitWeights) do
+		selectedConduitTotal = selectedConduitTotal + value
+	end
+
+
+
+	return selectedNodeTotal, unlockedMax, nodeMax, selectedConduitTotal, unlockedConduit, conduitMax
 end
 
 function addon:GetWeightPercent(weight)

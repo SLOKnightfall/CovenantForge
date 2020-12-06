@@ -18,7 +18,7 @@
 				</FontString>
 			</Layer>
 		<Layer level="OVERLAY">
-				<FontString parentKey="setName" inherits="GameFontHighlightMedium" text="">
+				<FontString parentKey="soulbindWeight" inherits="GameFontHighlightMedium" text="">
 					<Anchors>
 						<Anchor point="BOTTOMLEFT"  y="15" relativePoint="BOTTOMLEFT"/>
 						<Anchor point="BOTTOMRIGHT"  relativePoint="BOTTOMRIGHT"/>
@@ -55,6 +55,21 @@
 					<Offset x="5" y="-5" />
 						<Color r="0.804" g="0.725" b="0.616"/>
 					</Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+
+	<Frame name="CovenantForge_WeightTotalTemplate" parentKey="WeightTotal" virtual="true" setAllPoints="true" frameLevel="150">
+		<Size x="500" y="50"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString parentKey="Weight" inherits="GameFontHighlightMedium" text="Name">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="2" y="-2" relativePoint="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT" x="2" y="-2" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+					<Color r="0.804" g="0.725" b="0.616"/>
 				</FontString>
 			</Layer>
 		</Layers>
