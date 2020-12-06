@@ -232,7 +232,7 @@ function addon:Update()
 			f = CreateFrame("Frame", "CovForge_Conduit"..buttonIndex, nodeFrame, "CovenantForge_ConduitInfoTemplate")
 			nodeFrame.ForgeInfo = f
 		end
-		
+
 		f.Name:SetText("")
 
 		if nodeFrame.Emblem then 
@@ -295,20 +295,25 @@ function addon:Update()
 			local weight = addon:GetWeightData(conduitID, viewed_spec, itemLevel)
 			local percent = addon:GetWeightPercent(weight)
 
-			if addon.Profile.ShowAsPercent then 
+			if weight ~=0 then 
+				if addon.Profile.ShowAsPercent then 
+					if percent > 0 then 
+						conduitButton.ItemLevel:SetText(conduitItemLevel..GREEN_FONT_COLOR_CODE.." (+"..percent.."%)");
+					elseif percent < 0 then 
+						conduitButton.ItemLevel:SetText(conduitItemLevel..RED_FONT_COLOR_CODE.." ("..percent.."%)");
 
-				if percent > 0 then 
-					conduitButton.ItemLevel:SetText(conduitItemLevel..GREEN_FONT_COLOR_CODE.." (+"..percent.."%)");
-				elseif percent < 0 then 
-					conduitButton.ItemLevel:SetText(conduitItemLevel..RED_FONT_COLOR_CODE.." ("..percent.."%)");
-				end
-			else
+					end
+				else
 
-				if weight > 0 then 
-					conduitButton.ItemLevel:SetText(conduitItemLevel..GREEN_FONT_COLOR_CODE.." (+"..weight..")");
-				elseif weight < 0 then 
-					conduitButton.ItemLevel:SetText(conduitItemLevel..RED_FONT_COLOR_CODE.." ("..weight..")");
+					if weight > 0 then 
+						conduitButton.ItemLevel:SetText(conduitItemLevel..GREEN_FONT_COLOR_CODE.." (+"..weight..")");
+					elseif weight < 0 then 
+						conduitButton.ItemLevel:SetText(conduitItemLevel..RED_FONT_COLOR_CODE.." ("..weight..")");
+
+					end
 				end
+			else 
+				conduitButton.ItemLevel:SetText(conduitItemLevel);
 			end
 
 		end
