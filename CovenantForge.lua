@@ -134,11 +134,6 @@ end
 function addon:EventHandler(event, arg1 )
 	if event == "ADDON_LOADED" and arg1 == "Blizzard_Soulbinds" then 
 		addon:Hook(SoulbindViewer, "Open", function()  C_Timer.After(.05, function() addon:Update() end) end , true)
-		--addon:Hook(SoulbindViewer, "OnShow", function()  print("OSS") end , true)
-
-	--	addon:Hook(SoulbindViewer, "OnHide", function() print("OHH") end , true)
-
-		--SoulbindViewerMixin:OnShow()
 		C_Timer.After(.05, function() addon.Init:CreateSoulbindFrames() end)
 		addon:UnregisterEvent("ADDON_LOADED")
 	end
@@ -186,10 +181,10 @@ function addon.Init:CreateSoulbindFrames()
 		addon:Hook(button, "OnSelected", function() addon:Update() end , true)
 
 		local f = CreateFrame("Frame", "CovForge_Souldbind"..buttonIndex, button, "CovenantForge_SoulbindInfoTemplate")
-		local soulbindID = button:GetSoulbindID()
-		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
-		local nodeTotal, conduitTotal = addon:GetSoulbindWeight(soulbindID)
-		f.soulbindWeight:SetText(nodeTotal + conduitTotal .. "["..nodeTotal.."]" )
+		--local soulbindID = button:GetSoulbindID()
+		--f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
+		--local nodeTotal, conduitTotal = addon:GetSoulbindWeight(soulbindID)
+		--f.soulbindWeight:SetText(nodeTotal + conduitTotal .. "["..nodeTotal.."]" )
 		button.ForgeInfo = f
 	end
 
@@ -222,9 +217,12 @@ function addon.Init:CreateSoulbindFrames()
 
 	local f = CreateFrame("Frame", "CovForge_WeightTotal", SoulbindViewer, "CovenantForge_WeightTotalTemplate")
 	addon.CovForge_WeightTotalFrame = f
+	f:Show()
 	f:ClearAllPoints()
 	f:SetPoint("BOTTOM",SoulbindViewer.ActivateSoulbindButton,"BOTTOM", 0, 25)
 
+	addon:Hook(SoulbindViewer, "UpdateCommitConduitsButton", function()addon.CovForge_WeightTotalFrame:SetShown(not SoulbindViewer.CommitConduitsButton:IsShown()) end, true)
+	--addon.CovForge_WeightTotalFrame:SetShown(not SoulbindViewer.CommitConduitsButton:IsShown())
 	addon:Update()
 end
 
@@ -240,13 +238,15 @@ function addon:Update()
 		local f = button.ForgeInfo
 		local soulbindID = button:GetSoulbindID()
 		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
-		local selectedNodeTotal, unlockedMax, nodeMax, selectedConduitTotal, unlockedConduit, conduitMax = addon:GetSoulbindWeight(soulbindID)
+		local selectedTotal, unlockedTotal, nodeMax, conduitMax = addon:GetSoulbindWeight(soulbindID)
 		--local nodeTotal, conduitTotal, selectedTotal, unlockedConduitTotal = addon:GetSoulbindWeight(soulbindID)
-		local totalValue = selectedNodeTotal + selectedConduitTotal
-		f.soulbindWeight:SetText(totalValue .. "("..nodeMax+conduitMax..")" )
+		--local totalValue = selectedNodeTotal + selectedConduitTotal
+		f.soulbindWeight:SetText(selectedTotal .. "("..nodeMax+conduitMax..")" )
 
 		if curentsoulbindID == soulbindID then 
-			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Base: %s/%s\nCurrent: %s/%s"]:format(unlockedMax, nodeMax, selectedNodeTotal + selectedConduitTotal, conduitMax + unlockedMax))
+			--addon.CovForge_WeightTotalFrame.Weight:SetText(L["Base: %s/%s\nCurrent: %s/%s"]:format(unlockedMax, nodeMax, selectedNodeTotal + selectedConduitTotal, conduitMax + unlockedMax))
+		
+			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Current: %s/%s\nMax Possible: %s"]:format(selectedTotal, unlockedTotal ,nodeMax+conduitMax))
 		end
 
 	end
@@ -290,13 +290,14 @@ function addon:Update()
 			weight = addon:GetTalentWeight(spellID, viewed_spec)
 		end
 
-		if weight then 
+		if weight and weight ~= 0 then 
 			local sign = "+"
 			if weight > 0 then 
 				f.Value:SetTextColor(0,1,0)
 			elseif weight < 0 then 
 				f.Value:SetTextColor(1,0,0)
 				sign = ""
+
 			end
 
 			if addon.Profile.ShowAsPercent then 
@@ -336,6 +337,8 @@ function addon:Update()
 			end
 		end
 	end
+
+	addon.CovForge_WeightTotalFrame:SetShown(not SoulbindViewer.CommitConduitsButton:IsShown())
 end
 
 
@@ -355,11 +358,9 @@ function addon:BuildWeightData()
 			for i=2, #data do
 				local conduitData = data[i]
 				local name = string.gsub(conduitData[1],' %(.+%)',"")
-				--print(name)
 				local ilevel ={}
 				for index = 2, #conduitData do
 					local ilevelData = data[1][index]
-					--print(ilevelData)
 					ilevel[ilevelData] = conduitData[index]
 				end
 				Weights[spec][name] = ilevel
@@ -371,7 +372,9 @@ end
 
 
 function addon:GetWeightData(conduitID, specID)
+	if not addon.Conduits[conduitID] then return 0 end
 	local soulbindName = addon.Conduits[conduitID][1]
+	--if soulbindName == "Rejuvenating Wind" then return 31 end
 	local collectionData  = C_Soulbinds.GetConduitCollectionData(conduitID)
 	local conduitItemLevel = collectionData.conduitItemLevel
 
@@ -383,32 +386,46 @@ function addon:GetWeightData(conduitID, specID)
 	return 0
 end
 
+
 function addon:GetTalentWeight(spellID, specID)
+	--if spellID == 320658 then return 51 end
 	local name = addon.Soulbinds[spellID]
 	if Weights[specID][name] then 
 		local weight = Weights[specID][name][1]
 		return weight
 	end
 
-	return nil
+	return 0
+end
+
+
+local function BuildTreeData(tree)
+	local parentNodeTable = {}
+	local parentNodeData = {}
+	for i, data in ipairs(tree) do
+		parentNodeData[data.ID] = data
+		local parentNodeIDs = data.parentNodeIDs
+		if #parentNodeIDs == 1  and data.row ~= 0 then 
+			parentNodeTable[data.ID] = data.parentNodeIDs[1]
+		--	print(data.parentNodeIDs[1])
+		end
+	end
+	return parentNodeTable, parentNodeData
 end
 
 
 function addon:GetSoulbindWeight(soulbindID)
 	local data = C_Soulbinds.GetSoulbindData(soulbindID)
 	local tree = data.tree.nodes
-	local maxNodeWeights = {}
-	local selectedNodeWeight = {}
-	local maxConduitWeights = {}
-	local selectedConduitWeights = {}
+	local parentNodeTable, parentNodeData = BuildTreeData(tree)	
 
-	local unlockedNodeWeights = {}
-	local unlockedConduitWeights = {}
 	local selectedWeight = {}
-	local possibleWeights = {}
+	local unlockedWeights = {}
+	local maxNodeWeights = {}
+	local maxConduitWeights = {}
+	local parentRow = {}
 
 	for i, data in ipairs(tree) do
-
 		local row = data.row  --RowID starts at 0
 		local conduitID = data.conduitID
 		local spellID = data.spellID
@@ -418,47 +435,63 @@ function addon:GetSoulbindWeight(soulbindID)
 		local selectedTable
 		local unlockedTable
 		
+
+		local parentNode = parentNodeTable[data.ID]
+		local parentData = parentNodeData[parentNode]
+		local parentWeight = 0
+		
+		
 		if conduitID == 0 then
 			weight = addon:GetTalentWeight(spellID, viewed_spec)
+
 			maxTable = maxNodeWeights
-			selectedTable = selectedNodeWeight
-			unlockedTable = unlockedNodeWeights
 		else
 			weight = addon:GetWeightData(conduitID, viewed_spec)
+
 			maxTable = maxConduitWeights
-			selectedTable = selectedConduitWeights
-			unlockedTable = unlockedConduitWeights
+		end
+
+		if parentData and parentData.conduitID == 0 then
+				parentWeight = addon:GetTalentWeight(parentData.spellID, viewed_spec)
+				parentRow[parentData.row] = true
+		elseif parentData then 
+			parentWeight = addon:GetWeightData(parentData.conduitID, viewed_spec)
+			parentRow[parentData.row] = true
 		end
 
 		if weight and state == 3 then
-			selectedTable[row] = weight
+			selectedWeight[row] = weight
 		end
 
-		unlockedTable[row] = unlockedTable[row] or 0
-		if weight and state ~= 0 and  weight >= unlockedTable[row] then
-			unlockedTable[row] = weight
+		unlockedWeights[row] = unlockedWeights[row] or 0
+		if weight and state ~= 0 and  weight + parentWeight >= unlockedWeights[row] then
+			unlockedWeights[row] = weight + parentWeight 
 		end
 
 		maxTable[row] = maxTable[row] or 0
-		if weight and weight >= maxTable[row] then
-			maxTable[row] = weight
+		if weight and weight + parentWeight  >= maxTable[row] then
+			maxTable[row] = weight + parentWeight 
 		end
 	end
 
-	local selectedNodeTotal = 0
-	for i, value in pairs(selectedNodeWeight) do
-		selectedNodeTotal = selectedNodeTotal + value
+	for i, data in pairs(parentRow)do
+		if i ~=0 then 
+			maxNodeWeights[i] = 0
+			unlockedWeights[i] = 0
+			maxConduitWeights[i] = 0
+		end
 	end
 
-	local unlockedMax = 0
-	for i, value in pairs(unlockedNodeWeights) do
-		unlockedMax = unlockedMax + value
+	local selectedTotal = 0
+	for i, value in pairs(selectedWeight) do
+		selectedTotal = selectedTotal + value
 	end
 
-	local unlockedConduit = 0
-	for i, value in pairs(unlockedConduitWeights) do
-		unlockedConduit = unlockedConduit + value
+	local unlockedTotal = 0
+	for i, value in pairs(unlockedWeights) do
+		unlockedTotal = unlockedTotal + value
 	end
+
 
 	local nodeMax = 0
 	for i, value in pairs(maxNodeWeights) do
@@ -471,15 +504,9 @@ function addon:GetSoulbindWeight(soulbindID)
 		conduitMax = conduitMax + value
 	end
 
-	local selectedConduitTotal = 0
-	for i, value in pairs(selectedConduitWeights) do
-		selectedConduitTotal = selectedConduitTotal + value
-	end
-
-
-
-	return selectedNodeTotal, unlockedMax, nodeMax, selectedConduitTotal, unlockedConduit, conduitMax
+	return selectedTotal, unlockedTotal, nodeMax, conduitMax
 end
+
 
 function addon:GetWeightPercent(weight)
 	local percent = weight/WEIGHT_BASE
