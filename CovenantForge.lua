@@ -372,7 +372,7 @@ end
 
 
 function addon:GetWeightData(conduitID, specID)
-	if not addon.Conduits[conduitID] then return 0 end
+	if not addon.Conduits[conduitID] or not Weights[specID] then return 0 end
 	local soulbindName = addon.Conduits[conduitID][1]
 	--if soulbindName == "Rejuvenating Wind" then return 31 end
 	local collectionData  = C_Soulbinds.GetConduitCollectionData(conduitID)
@@ -389,6 +389,7 @@ end
 
 function addon:GetTalentWeight(spellID, specID)
 	--if spellID == 320658 then return 51 end
+	if not addon.Soulbinds[spellID] or not Weights[specID] then return 0 end
 	local name = addon.Soulbinds[spellID]
 	if Weights[specID][name] then 
 		local weight = Weights[specID][name][1]
