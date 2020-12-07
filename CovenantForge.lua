@@ -181,10 +181,6 @@ function addon.Init:CreateSoulbindFrames()
 		addon:Hook(button, "OnSelected", function() addon:Update() end , true)
 
 		local f = CreateFrame("Frame", "CovForge_Souldbind"..buttonIndex, button, "CovenantForge_SoulbindInfoTemplate")
-		--local soulbindID = button:GetSoulbindID()
-		--f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
-		--local nodeTotal, conduitTotal = addon:GetSoulbindWeight(soulbindID)
-		--f.soulbindWeight:SetText(nodeTotal + conduitTotal .. "["..nodeTotal.."]" )
 		button.ForgeInfo = f
 	end
 
@@ -203,6 +199,7 @@ function addon.Init:CreateSoulbindFrames()
 
 	--Spec Selection Dropdown
 	local frame = AceGUI:Create("SimpleGroup")
+	frame.frame:SetParent(SoulbindViewer)
 	frame:SetHeight(20)
 	frame:SetWidth(125)
 	frame:SetPoint("TOP",SoulbindViewer,"TOP", 105, -33)
@@ -235,7 +232,12 @@ function addon:Update()
 
 
 	for buttonIndex, button in ipairs(SoulbindViewer.SelectGroup.buttonGroup:GetButtons()) do
-		local f = button.ForgeInfo
+		local f = button.ForgeInfo 
+		if not f then 
+			f = CreateFrame("Frame", "CovForge_Souldbind"..buttonIndex, button, "CovenantForge_SoulbindInfoTemplate")
+			button.ForgeInfo = f
+		end
+
 		local soulbindID = button:GetSoulbindID()
 		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
 		local selectedTotal, unlockedTotal, nodeMax, conduitMax = addon:GetSoulbindWeight(soulbindID)
@@ -351,8 +353,8 @@ function addon:BuildWeightData()
 	local _, _, classID = UnitClass("player")
 	local covenantID = C_Covenants.GetActiveCovenantID();
 	local classSpecs = CLASS_SPECS[classID]
-	if addon.Weights["PR"][specID] then 
-		for i,spec in ipairs(classSpecs) do
+	for i,spec in ipairs(classSpecs) do
+		if addon.Weights["PR"][spec] then 
 			local data = addon.Weights["PR"][spec][covenantID]
 			Weights[spec] =  {}
 			for i=2, #data do
@@ -365,8 +367,8 @@ function addon:BuildWeightData()
 				end
 				Weights[spec][name] = ilevel
 			end
-
 		end
+
 	end
 end
 
