@@ -20,6 +20,7 @@ local playerClass, classID,_
 local conduitList = {}
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
+local AceGUI = LibStub("AceGUI-3.0")
 
 local CONDUIT_RANKS = {
 	[1] = C_Soulbinds.GetConduitItemLevel(0, 1),
@@ -34,37 +35,69 @@ local CONDUIT_RANKS = {
 
 
 local WEIGHT_BASE = 37.75
-local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,269,270},{102,103,104,105},{577,578}}
+local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,270,269},{102,103,104,105},{577,578}}
 
+local WeightProfiles = {}
+local ProfileTable = {}
 local Weights = {}
-local ilevel = {}
+local ilevels = {}
+local ilevelData = {}
+local powers = {}
+
+local function GetSoulbindPowers()
+	local covenantData = C_Covenants.GetCovenantData(C_Covenants.GetActiveCovenantID())
+	local soulbinds = covenantData.soulbindIDs
+	for _, soulbindID in pairs(soulbinds) do
+		local soulbindData = C_Soulbinds.GetSoulbindData(soulbindID)
+		local tree = soulbindData.tree.nodes
+		for index, data in ipairs(tree) do
+			if data.conduitID == 0 and data.spellID ~= 0 then 
+				--if data.spellID == 0 then print(index) end
+
+				table.insert(powers, data.spellID)
+			end
+		end
+	end
+end
 function addon:BuildWeightData()
+	GetSoulbindPowers()
 	local spec = GetSpecialization()
 	local specID, specName = GetSpecializationInfo(spec)
 	local _, _, classID = UnitClass("player")
 	local covenantID = C_Covenants.GetActiveCovenantID();
 	local classSpecs = CLASS_SPECS[classID]
-	for i,spec in ipairs(classSpecs) do
-		if addon.Weights["PR"][spec] then 
-			local data = addon.Weights["PR"][spec][covenantID]
-			Weights[spec] =  {}
-			for i=2, #data do
-				local conduitData = data[i]
-				local name = string.gsub(conduitData[1],' %(.+%)',"")
-				local ilevel ={}
-				for index = 2, #conduitData do
-					local ilevelData = data[1][index]
-					ilevel[ilevelData] = conduitData[index]
+	for profile, weightData in pairs(addon.Weights) do
+		local Weights = {}
+		for i,spec in ipairs(classSpecs) do
+			if addon.Weights[profile][spec] then 
+				local data = addon.Weights[profile][spec][covenantID]
+				Weights[spec] =  {}
+				for i=2, #data do
+					local conduitData = data[i]
+					local name = string.gsub(conduitData[1],' %(.+%)',"")
+					local ilevel ={}
+					for index = 2, #conduitData do
+						local ilevelData = data[1][index]
+						ilevels[index - 1 ] = ilevelData
+						ilevel[ilevelData] = conduitData[index]
+					end
+					Weights[spec][name] = ilevel
 				end
-				Weights[spec][name] = ilevel
 			end
 		end
-
+		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= Weights})
+		table.insert(ProfileTable, profile)
 	end
 end
 
 
+function SelectProfile(index)
+	Weights = WeightProfiles[index].weights
+	addon:UpdateWeightList()
+end
+
 function addon:GetWeightData(conduitID, specID)
+	local profile = addon.savedPathdb.char.selectedProfile
 	if not addon.Conduits[conduitID] or not Weights[specID] then return 0 end
 	local soulbindName = addon.Conduits[conduitID][1]
 	--if soulbindName == "Rejuvenating Wind" then return 31 end
@@ -208,20 +241,61 @@ function addon:GetWeightPercent(weight)
  return  tonumber(string.format("%.2f", percent))
 end
 
+local function updateWeight(index, value)
+
+end
 
 
+local filterValue = 1
+local filteredList = addon.conduitList
 function addon:UpdateWeightList()
+	local filter = {"All", 	Soulbinds.GetConduitName(0),Soulbinds.GetConduitName(1),Soulbinds.GetConduitName(2), "Soulbinds"}
+	local scrollcontainer = addon.scrollcontainer
 	scrollcontainer:ReleaseChildren()
+	scrollcontainer:SetPoint("TOPLEFT", addon.PathStorageFrame,"TOPLEFT", 0, -25)
+
+	local selectedProfile = addon.savedPathdb.char.selectedProfile
+	local weights = WeightProfiles[selectedProfile].weights
+	--Weights[spec][name] = ilevel
+	--Weights[addon.viewed_spec]
 
 	scroll = AceGUI:Create("ScrollFrame")
 	scroll:SetLayout("Flow") -- probably?
 	scrollcontainer:AddChild(scroll)
 
+	local dropdown = AceGUI:Create("Dropdown")
+	dropdown:SetFullWidth(false)
+	dropdown:SetWidth(100)
+	scroll:AddChild(dropdown)
+	dropdown:SetList(ProfileTable)
+	--dropdown:SetValue(selectedProfile)
+
+	dropdown = AceGUI:Create("Dropdown")
+	dropdown:SetFullWidth(false)
+	dropdown:SetWidth(100)
+	scroll:AddChild(dropdown)
+	dropdown:SetList(filter)
+	dropdown:SetValue(filterValue)
+	dropdown:SetCallback("OnValueChanged", 
+		function(self,event, key) 
+			print("SDF")
+			filterValue = key; 
+			if key == 1 then 
+				filteredList = addon.conduitList
+			else 
+				filteredList = {addon.conduitList[key-2]}
+			end
+			addon:UpdateWeightList()
+		end)
+
 	--local scrollframe = addon.ScrollFrame
 
-	for i, typedata in pairs(conduitList) do
-		local collectionData = C_Soulbinds.GetConduitCollection(i)
-
+	for i, typedata in pairs(filteredList) do
+		local index = i
+		if #filteredList == 1 then 
+			index = filterValue - 2
+		end
+		local collectionData = C_Soulbinds.GetConduitCollection(index)
 
 		local topHeading = AceGUI:Create("Heading") 
 		topHeading:SetRelativeWidth(1)
@@ -231,8 +305,8 @@ function addon:UpdateWeightList()
 		bottomHeading:SetHeight(5)
 
 		local label = AceGUI:Create("Label") 
-			label:SetText(Soulbinds.GetConduitName(i))
-			local atlas = Soulbinds.GetConduitEmblemAtlas(i);
+			label:SetText(Soulbinds.GetConduitName(index))
+			local atlas = Soulbinds.GetConduitEmblemAtlas(index);
 			--label:SetImage(icon)
 			label:SetImage("Interface/Buttons/UI-OptionsButton")
 
@@ -244,7 +318,7 @@ function addon:UpdateWeightList()
 			label:SetRelativeWidth(1)
 			scroll:AddChild(topHeading)
 			scroll:AddChild(label)
-			scroll:AddChild(bottomHeading)
+			--scroll:AddChild(bottomHeading)
 
 		for i, data in pairs(typedata) do
 			local name = data[1]
@@ -260,31 +334,130 @@ function addon:UpdateWeightList()
 					break
 				end
 			end
-			local weight = addon:GetWeightData(i, addon.viewed_spec)
-			if weight then
-				if weight > 0 then
-					if addon.Profile.ShowAsPercent then 
-						weight = addon:GetWeightPercent(weight).."%"
-					end
-					weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
-				elseif weight < 0 then
-					if addon.Profile.ShowAsPercent then 
-						weight = addon:GetWeightPercent(weight).."%"
-					end
-					weight = RED_FONT_COLOR_CODE.."("..weight..")"
-				else
-					weight = ""
-				end
-			end
+			local container = AceGUI:Create("SimpleGroup") 
+			container:SetLayout("Flow")
+			container:SetFullWidth(true)
+			container:SetHeight(20)
 
-			local text = ("%s-%s (%s)-\n%s%s %s\n "):format(titleColor, name, type, GRAY_FONT_COLOR_CODE,desc,weight)
-			local label = AceGUI:Create("Label") 
-			label:SetText(text)
-			label:SetImage(icon)
-			label:SetFont("Fonts\\FRIZQT__.TTF", 12)
-			label:SetImageSize(30,30)
-			label:SetRelativeWidth(1)
-			scroll:AddChild(label)
+			local text = ("%s-%s (%s)-"):format(titleColor, name, type, GRAY_FONT_COLOR_CODE,desc,weight)
+			local Icon = AceGUI:Create("Label") 
+			Icon:SetText(text)
+			Icon:SetImage(icon)
+			--icon:SetFont("Fonts\\FRIZQT__.TTF", 12)
+			Icon:SetImageSize(20,20)
+			Icon:SetFullWidth(true)
+			Icon:SetHeight(20)
+			--icon:SetRelativeWidth(1)
+			container:AddChild(Icon)
+
+			local ileveldata = weights[addon.viewed_spec][name]
+			for i, data in pairs(ilevels) do
+				if i ~= 1 then 
+					local editbox = AceGUI:Create("EditBox")
+					editbox:SetLabel(data)
+					editbox:SetWidth(50)
+					editbox:SetHeight(30)
+					editbox.button:ClearAllPoints()
+					editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
+
+					if ileveldata then 
+
+
+					editbox:SetText(ileveldata[data] or 0)
+					--InteractiveLabel:SetCallback("OnClick", function() addon:LoadPath(i) end)
+					end
+					container:AddChild(editbox)
+				end
+
+			end
+					local topHeading = AceGUI:Create("Heading") 
+		topHeading:SetRelativeWidth(1)
+		topHeading:SetHeight(5)
+		scroll:AddChild(topHeading)
+			scroll:AddChild(container)
 		end
 	end
+ if filterValue == 1 or filterValue == 5 then 
+	local topHeading = AceGUI:Create("Heading") 
+		topHeading:SetRelativeWidth(1)
+		topHeading:SetHeight(5)
+
+		local label = AceGUI:Create("Label") 
+			label:SetText("Soulbinds")
+			local atlas = "CovenantChoice-Celebration-3sSigil"
+			--label:SetImage(icon)
+			label:SetImage("Interface/Buttons/UI-OptionsButton")
+
+			label.image:SetAtlas(atlas)
+			label:SetFontObject(GameFontHighlightLarge)
+
+			--label.image.imageshown = true
+			label:SetImageSize(30,30)
+			label:SetRelativeWidth(1)
+			label:SetHeight(5)
+			scroll:AddChild(topHeading)
+			scroll:AddChild(label)
+			for i, spellID in pairs(powers) do
+				local name = GetSpellInfo(spellID) or ""
+				local desc = GetSpellDescription(spellID)
+				local _,_, icon = GetSpellInfo(spellID)
+				local titleColor = ORANGE_FONT_COLOR_CODE
+				--for i, data in ipairs(collectionData) do
+					--local c_spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, data.conduitRank)
+					--if c_spellID == spellID then 
+					--	titleColor = GREEN_FONT_COLOR_CODE
+					--	break
+					--end
+			--	end
+				local container = AceGUI:Create("SimpleGroup") 
+				container:SetLayout("Flow")
+				container:SetFullWidth(true)
+				container:SetHeight(20)
+
+				local text = ("%s-%s-"):format(titleColor, name)
+				local Icon = AceGUI:Create("Label") 
+				Icon:SetText(text)
+				Icon:SetImage(icon)
+				--icon:SetFont("Fonts\\FRIZQT__.TTF", 12)
+				Icon:SetImageSize(20,20)
+				Icon:SetFullWidth(true)
+				Icon:SetHeight(20)
+				--icon:SetRelativeWidth(1)
+				container:AddChild(Icon)
+					--scroll:AddChild(container)
+
+				local ileveldata = weights[addon.viewed_spec][name]
+
+				local editbox = AceGUI:Create("EditBox")
+				--editbox:SetLabel(data)
+				editbox:SetWidth(50)
+				editbox:SetHeight(30)
+									editbox.button:ClearAllPoints()
+					editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
+
+				if ileveldata then 
+
+
+					editbox:SetText(ileveldata[1] or 0)
+						--InteractiveLabel:SetCallback("OnClick", function() addon:LoadPath(i) end)
+				end
+				container:AddChild(editbox)
+		
+						local topHeading = AceGUI:Create("Heading") 
+			topHeading:SetRelativeWidth(1)
+			topHeading:SetHeight(5)
+			scroll:AddChild(topHeading)
+				scroll:AddChild(container)
+			end
+
+		
+		
+		
+	end
 end
+
+
+
+
+--C_Soulbinds.GetSoulbindData(soulbindID)
+--C_Covenants.GetCovenantData(3).soulbindIDs

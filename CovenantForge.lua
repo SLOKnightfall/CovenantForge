@@ -23,7 +23,7 @@ local playerNme
 local realmName
 local playerClass, classID,_
 local viewed_spec
-local conduitList = {}
+addon.conduitList = {}
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
@@ -134,12 +134,14 @@ local defaults = {
 	profile = {
 				['*'] = true,
 				disableFX = false,
+
 			},
 }
 
 local pathDefaults = {
 	char ={
 		paths = {},
+		selectedProfile = 1,
 	},
 }
 
@@ -202,7 +204,7 @@ function addon:OnEnable()
 	self:SecureHookScript(EmbeddedItemTooltip,"OnTooltipSetItem", "GenerateToolip")
 end
 
-local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,269,270},{102,103,104,105},{577,578}}
+local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,270,69},{102,103,104,105},{577,578}}
 
 local covenantBgAtlasIDs = {
 	[1] = "ui-frame-kyrianchoice-cardparchment",
@@ -376,7 +378,7 @@ function addon:UpdateConduitList()
 	scroll:SetLayout("Flow") -- probably?
 	scrollcontainer:AddChild(scroll)
 
-	for i, typedata in pairs(conduitList) do
+	for i, typedata in pairs(addon.conduitList) do
 		local collectionData = C_Soulbinds.GetConduitCollection(i)
 
 		local topHeading = AceGUI:Create("Heading") 
@@ -568,6 +570,10 @@ function addon:Update()
 	if addon.PathStorageFrame and addon.PathStorageFrame:IsShown() and currentTab == 2 then
 		addon:UpdateConduitList()
 	end
+
+	if addon.PathStorageFrame and addon.PathStorageFrame:IsShown() and currentTab == 3 then
+		addon:UpdateWeightList()
+	end
 end
 
 
@@ -678,8 +684,8 @@ function addon:GetClassConduits()
 
 		if valid then 
 			local type = data[3]
-			conduitList[type] = conduitList[type] or {}
-			conduitList[type][i] = data
+			addon.conduitList[type] = addon.conduitList[type] or {}
+			addon.conduitList[type][i] = data
 		end
 	end
 end
