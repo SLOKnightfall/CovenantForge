@@ -4,7 +4,7 @@
 ## Game Version: 9.0.2
 ## Author: SLOKnightfall
 ## Notes: 
-## SavedVariables: CovenantForgeDB
+## SavedVariables: CovenantForgeDB, CovenantForgeSavedPaths
 
 #Libraries
 Libs\LibStub\LibStub.lua

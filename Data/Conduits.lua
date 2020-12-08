@@ -1,6 +1,7 @@
 local addonName, addon = ...
 addon = LibStub("AceAddon-3.0"):GetAddon(addonName)
 
+--ID = name, spellid, type, specs
 addon.Conduits ={
 	[5]={ "Stalwart Guardian", 334993, 2, {72,71,73,},},
 	[7]={ "Brutal Vitality", 335010, 2, {72,71,73,},},
