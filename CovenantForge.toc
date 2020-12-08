@@ -23,9 +23,12 @@ Libs\AceLocale-3.0\AceLocale-3.0.xml
 
 #Locale
 Locale\enUS.lua
-
+Locale\ruRU.lua
 #Core files
 CovenantForge.xml
+
+#3rd party addon compatability
+Plugins\ElvUI.lua
 
 #Data
 Data\Conduits.lua

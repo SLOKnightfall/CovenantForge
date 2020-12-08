@@ -206,13 +206,6 @@ end
 
 local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,270,69},{102,103,104,105},{577,578}}
 
-local covenantBgAtlasIDs = {
-	[1] = "ui-frame-kyrianchoice-cardparchment",
-	[2] = "ui-frame-venthyrchoice-cardparchment",
-	[3] = "ui-frame-nightfaechoice-cardparchment",
-	[4] = "ui-frame-necrolordschoice-cardparchment",
-}
-
 local scroll
 local scrollcontainer
 function addon.Init:CreateSoulbindFrames()
@@ -283,7 +276,8 @@ function addon.Init:CreateSoulbindFrames()
 	addon.PathStorageFrame = f
 	f.Background:SetDesaturated(true)
 	f.Background:SetAlpha(0.3)
-	f.Background:SetAtlas(covenantBgAtlasIDs[covenantID], nil)
+	local covenantData = C_Covenants.GetCovenantData(C_Covenants.GetActiveCovenantID());
+	f.Background:SetAtlas(("ui-frame-%schoice-cardparchment"):format(covenantData.textureKit))
 	f:Hide()
 
 	addon.PathStorageFrame.TabList = {}
@@ -369,8 +363,14 @@ function CovenantForgeSavedTab_OnClick(self)
 	end
 end
 
-
+local filterValue = 1
+local filteredList = addon.conduitList
 function addon:UpdateConduitList()
+	if not SoulbindViewer or (SoulbindViewer and not SoulbindViewer:IsShown()) or
+ 		not addon.scrollcontainer then return end
+
+ 	local filter = {"All", 	Soulbinds.GetConduitName(0),Soulbinds.GetConduitName(1),Soulbinds.GetConduitName(2), "Soulbinds"}
+
 	scrollcontainer:ReleaseChildren()
 	scrollcontainer:SetPoint("TOPLEFT", addon.PathStorageFrame,"TOPLEFT", 0, -25)
 
@@ -378,8 +378,30 @@ function addon:UpdateConduitList()
 	scroll:SetLayout("Flow") -- probably?
 	scrollcontainer:AddChild(scroll)
 
-	for i, typedata in pairs(addon.conduitList) do
-		local collectionData = C_Soulbinds.GetConduitCollection(i)
+	dropdown = AceGUI:Create("Dropdown")
+	dropdown:SetFullWidth(false)
+	dropdown:SetWidth(100)
+	scroll:AddChild(dropdown)
+	dropdown:SetList(filter)
+	dropdown:SetValue(filterValue)
+	dropdown:SetCallback("OnValueChanged", 
+		function(self,event, key) 
+			--print("SDF")
+			filterValue = key; 
+			if key == 1 then 
+				filteredList = addon.conduitList
+			else 
+				filteredList = {addon.conduitList[key-2]}
+			end
+			addon:UpdateConduitList()
+		end)
+
+	for i, typedata in pairs(filteredList) do
+		local index = i
+		if #filteredList == 1 then 
+			index = filterValue - 2
+		end
+		local collectionData = C_Soulbinds.GetConduitCollection(index)
 
 		local topHeading = AceGUI:Create("Heading") 
 		topHeading:SetRelativeWidth(1)
@@ -389,8 +411,8 @@ function addon:UpdateConduitList()
 		bottomHeading:SetHeight(5)
 
 		local label = AceGUI:Create("Label") 
-			label:SetText(Soulbinds.GetConduitName(i))
-			local atlas = Soulbinds.GetConduitEmblemAtlas(i);
+			label:SetText(Soulbinds.GetConduitName(index))
+			local atlas = Soulbinds.GetConduitEmblemAtlas(index);
 			--label:SetImage(icon)
 			label:SetImage("Interface/Buttons/UI-OptionsButton")
 
@@ -420,7 +442,7 @@ function addon:UpdateConduitList()
 							break
 						end
 					end
-					local weight = addon:GetWeightData(i, addon.viewed_spec)
+					local weight = addon:GetConduitWeight(addon.viewed_spec, i)
 					if weight then
 						if weight > 0 then
 							if addon.Profile.ShowAsPercent then 
@@ -448,16 +470,77 @@ function addon:UpdateConduitList()
 				end
 			end
 		end
+
+
+	end
+		if filterValue == 1 or filterValue == 5 then 
+		local topHeading = AceGUI:Create("Heading") 
+		topHeading:SetRelativeWidth(1)
+		topHeading:SetHeight(5)
+		scroll:AddChild(topHeading)
+
+		local label = AceGUI:Create("Label") 
+		label:SetText("Soulbinds")
+
+		local covenantData = C_Covenants.GetCovenantData(C_Covenants.GetActiveCovenantID());
+		label:SetImage("Interface/Buttons/UI-OptionsButton")
+		label.image:SetAtlas(("CovenantChoice-Celebration-%sSigil"):format(covenantData.textureKit))
+		label:SetFontObject(GameFontHighlightLarge)
+
+		--label.image.imageshown = true
+		label:SetImageSize(30,30)
+		label:SetRelativeWidth(1)
+		label:SetHeight(5)
+		scroll:AddChild(label)
+
+		topHeading = AceGUI:Create("Heading") 
+		topHeading:SetRelativeWidth(1)
+		topHeading:SetHeight(5)
+		scroll:AddChild(topHeading)
+
+		local powers = addon.powers
+		for soulbindID, sb_powers in pairs(powers) do
+			local soulbind_data = C_Soulbinds.GetSoulbindData(soulbindID)
+			for i, spellID in pairs(sb_powers) do
+				local name = soulbind_data.name..": "..GetSpellInfo(spellID) or ""
+				local desc = GetSpellDescription(spellID)
+				local _,_, icon = GetSpellInfo(spellID)
+				local titleColor = ORANGE_FONT_COLOR_CODE
+
+				local weight = addon:GetTalentWeight(addon.viewed_spec, spellID)
+				if weight then
+					if weight > 0 then
+						if addon.Profile.ShowAsPercent then 
+							weight = addon:GetWeightPercent(weight).."%"
+						end
+						weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
+					elseif weight < 0 then
+						if addon.Profile.ShowAsPercent then 
+							weight = addon:GetWeightPercent(weight).."%"
+						end
+						weight = RED_FONT_COLOR_CODE.."("..weight..")"
+					else
+						weight = ""
+					end
+				end
+
+				local text = ("%s-%s-\n%s%s %s\n "):format(titleColor, name, GRAY_FONT_COLOR_CODE,desc,weight)
+				local label = AceGUI:Create("Label") 
+				label:SetText(text)
+				label:SetImage(icon)
+				label:SetFont("Fonts\\FRIZQT__.TTF", 12)
+				label:SetImageSize(30,30)
+				label:SetRelativeWidth(1)
+				scroll:AddChild(label)
+			end
+		end
 	end
 end
 
 
 --Updates Weight Values & Names
 function addon:Update()
-	local spec = GetSpecialization()
-	local specID, specName = GetSpecializationInfo(spec)
 	local curentsoulbindID = Soulbinds.GetOpenSoulbindID() or C_Soulbinds.GetActiveSoulbindID();
-
 
 	for buttonIndex, button in ipairs(SoulbindViewer.SelectGroup.buttonGroup:GetButtons()) do
 		local f = button.ForgeInfo 
@@ -469,12 +552,10 @@ function addon:Update()
 		local soulbindID = button:GetSoulbindID()
 		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
 		local selectedTotal, unlockedTotal, nodeMax, conduitMax = addon:GetSoulbindWeight(soulbindID)
-		--local nodeTotal, conduitTotal, selectedTotal, unlockedConduitTotal = addon:GetSoulbindWeight(soulbindID)
-		--local totalValue = selectedNodeTotal + selectedConduitTotal
-		f.soulbindWeight:SetText(selectedTotal .. "("..nodeMax+conduitMax..")" )
+		f.soulbindWeight:SetText(selectedTotal .. "("..nodeMax + conduitMax..")" )
 
 		if curentsoulbindID == soulbindID then 
-			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Current: %s/%s\nMax Possible: %s"]:format(selectedTotal, unlockedTotal ,nodeMax+conduitMax))
+			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Current: %s/%s\nMax Possible: %s"]:format(selectedTotal, unlockedTotal ,nodeMax + conduitMax))
 		end
 	end
 
@@ -484,6 +565,7 @@ function addon:Update()
 			f = CreateFrame("Frame", "CovForge_Conduit"..buttonIndex, nodeFrame, "CovenantForge_ConduitInfoTemplate")
 			nodeFrame.ForgeInfo = f
 		end
+
 		f.Name:SetText("")
 		if nodeFrame.Emblem then 
 			nodeFrame.Emblem:ClearAllPoints()
@@ -500,20 +582,19 @@ function addon:Update()
 			local conduitID = conduit:GetConduitID()
 			if conduit and conduitID > 0  then
 				local spellID = addon.Conduits[conduitID][2]
-				local name = GetSpellInfo(spellID)
-				local rank = conduit:GetConduitRank()
-				local itemLevel = C_Soulbinds.GetConduitItemLevel(conduitID, rank)
-				weight = addon:GetWeightData(conduitID, addon.viewed_spec)
-				f.Name:SetText(name)
+				name = GetSpellInfo(spellID)
+				--local rank = conduit:GetConduitRank()
+				--local itemLevel = C_Soulbinds.GetConduitItemLevel(conduitID, rank)
+				weight = addon:GetConduitWeight(addon.viewed_spec, conduitID)
 			else
-				f.Name:SetText("")
+				name = ""
 			end
 		else
 			local spellID =  nodeFrame.spell:GetSpellID()
-			local name = GetSpellInfo(spellID) or ""
-			f.Name:SetText(name)
-			weight = addon:GetTalentWeight(spellID, addon.viewed_spec)
+			name = GetSpellInfo(spellID) or ""
+			weight = addon:GetTalentWeight(addon.viewed_spec, spellID)
 		end
+		f.Name:SetText(name)
 
 		if weight and weight ~= 0 then 
 			local sign = "+"
@@ -522,17 +603,14 @@ function addon:Update()
 			elseif weight < 0 then 
 				f.Value:SetTextColor(1,0,0)
 				sign = ""
-
 			end
 
 			if addon.Profile.ShowAsPercent then 
 				weight = sign..addon:GetWeightPercent(weight).."%"
 			end
-
-			f.Value:SetText(weight)
-		else
-			f.Value:SetText("")
 		end
+
+		f.Value:SetText(weight or "")
 	end
 
 	for conduitType, conduitData in ipairs(SoulbindViewer.ConduitList:GetLists()) do
@@ -542,7 +620,7 @@ function addon:Update()
 			local conduitRank = conduitButton.conduitData.conduitRank
 
 			local ilevelText = L["%s (Rank %d)"]:format(conduitItemLevel,conduitRank )
-			local weight = addon:GetWeightData(conduitID, addon.viewed_spec, itemLevel)
+			local weight = addon:GetConduitWeight(addon.viewed_spec, conduitID)
 			local percent = addon:GetWeightPercent(weight)
 
 			if weight ~=0 then 
@@ -596,7 +674,6 @@ end
 
 
 local ItemLevelPattern = gsub(ITEM_LEVEL, "%%d", "(%%d+)")
-
 function addon:ConduitTooltip_Rank(tooltip, rank, row)
 	local text, level
 	local textLeft = tooltip.textLeft
@@ -690,7 +767,7 @@ function addon:GetClassConduits()
 	end
 end
 
-
+--Sets Slash Command to load macro
 addon:RegisterChatCommand("CFLoad", function(arg) addon:MacroLoad(arg) end)
 
 

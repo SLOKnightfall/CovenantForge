@@ -289,7 +289,8 @@ end
 
 
 function addon:UpdateSavedPathsList()
-	if not addon.savedPathdb.char.paths or not addon.scrollcontainer then return end
+	if not SoulbindViewer or (SoulbindViewer and not SoulbindViewer:IsShown()) or
+ 		not addon.savedPathdb.char.paths or not addon.scrollcontainer then return end
 
 	local scrollcontainer = addon.scrollcontainer
 	scrollcontainer:ReleaseChildren()
