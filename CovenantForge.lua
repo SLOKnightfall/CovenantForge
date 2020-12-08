@@ -320,6 +320,7 @@ function addon.Init:CreateSoulbindFrames()
 	scrollcontainer:SetFullWidth(true)
 	scrollcontainer:SetFullHeight(true) -- probably?
 	scrollcontainer:SetLayout("Fill")
+	addon.scrollcontainer = scrollcontainer
 
 	f:SetScript("OnHide", function() scrollcontainer:ReleaseChildren() end)
 	f:SetScript("OnShow", function() addon:UpdateSavedPathsList() end)
@@ -368,48 +369,6 @@ end
 
 
 
-function addon:UpdateSavedPathsList()
-	if not addon.savedPathdb.char.paths then return end
-
-	scrollcontainer:ReleaseChildren()
-	scroll = AceGUI:Create("ScrollFrame")
-	scroll:SetLayout("Flow") -- probably?
-	scrollcontainer:AddChild(scroll)
-
-	for i, data in ipairs(addon.savedPathdb.char.paths) do
-		local container = AceGUI:Create("SimpleGroup") 
-		local InteractiveLabel = AceGUI:Create("InteractiveLabel")
-		InteractiveLabel:SetText(data.name)
-		InteractiveLabel:SetImage(data.icon)
-		InteractiveLabel:SetImageSize(25,25)
-		InteractiveLabel:SetHeight(30)
-		--InteractiveLabel:SetWidth(225)
-		InteractiveLabel:SetRelativeWidth(.9)
-		InteractiveLabel:SetPoint("CENTER")
-		InteractiveLabel:SetCallback("OnClick", function() addon:SelectPath(i) end)
-		InteractiveLabel:SetCallback("OnEnter", function() addon:PathTooltip(InteractiveLabel, i) end)
-		InteractiveLabel:SetCallback("OnLeave", function() GameTooltip:Hide() end)
-
-		local UpdateButton =  AceGUI:Create("InteractiveLabel") 
-		UpdateButton:SetImage("Interface/Buttons/UI-OptionsButton")
-		UpdateButton:SetImageSize(15,15)
-		UpdateButton:SetCallback("OnClick", function()
-				if (not StaticPopup_Visible("COVENANTFORGE_UPDATEPOPUP")) then
-				addon:ShowPopup("COVENANTFORGE_UPDATEPOPUP", i)
-				end  end)
-		UpdateButton:SetCallback("OnEnter", function() GameTooltip:SetOwner(UpdateButton.frame, "ANCHOR_RIGHT"); GameTooltip:AddLine(L["Options"]); GameTooltip:Show() end)
-		UpdateButton:SetCallback("OnLeave", function() GameTooltip:Hide() end)
-		UpdateButton:SetRelativeWidth(.1)
-		UpdateButton.index = i
-
-		container:AddChild(InteractiveLabel)
-		container:AddChild(UpdateButton)
-		container:SetLayout("Flow")
-		container:SetFullWidth(true)
-		container:SetHeight(40)
-		scroll:AddChild(container)
-	end
-end
 
 
 function addon:UpdateConduitList()
@@ -493,84 +452,7 @@ function addon:UpdateConduitList()
 end
 
 
-function addon:UpdateWeightList()
-	scrollcontainer:ReleaseChildren()
 
-	scroll = AceGUI:Create("ScrollFrame")
-	scroll:SetLayout("Flow") -- probably?
-	scrollcontainer:AddChild(scroll)
-
-	--local scrollframe = addon.ScrollFrame
-
-	for i, typedata in pairs(conduitList) do
-		local collectionData = C_Soulbinds.GetConduitCollection(i)
-
-
-		local topHeading = AceGUI:Create("Heading") 
-		topHeading:SetRelativeWidth(1)
-		topHeading:SetHeight(5)
-		local bottomHeading = AceGUI:Create("Heading") 
-		bottomHeading:SetRelativeWidth(1)
-		bottomHeading:SetHeight(5)
-
-		local label = AceGUI:Create("Label") 
-			label:SetText(Soulbinds.GetConduitName(i))
-			local atlas = Soulbinds.GetConduitEmblemAtlas(i);
-			--label:SetImage(icon)
-			label:SetImage("Interface/Buttons/UI-OptionsButton")
-
-			label.image:SetAtlas(atlas)
-			label:SetFontObject(GameFontHighlightLarge)
-
-			--label.image.imageshown = true
-			label:SetImageSize(30,30)
-			label:SetRelativeWidth(1)
-			scroll:AddChild(topHeading)
-			scroll:AddChild(label)
-			scroll:AddChild(bottomHeading)
-
-		for i, data in pairs(typedata) do
-			local name = data[1]
-			local type = Soulbinds.GetConduitName(data[3])
-			local spellID = data[2]
-			local desc = GetSpellDescription(spellID)
-			local _,_, icon = GetSpellInfo(spellID)
-			local titleColor = ORANGE_FONT_COLOR_CODE
-			for i, data in ipairs(collectionData) do
-				local c_spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, data.conduitRank)
-				if c_spellID == spellID then 
-					titleColor = GREEN_FONT_COLOR_CODE
-					break
-				end
-			end
-			local weight = addon:GetWeightData(i, viewed_spec)
-			if weight then
-				if weight > 0 then
-					if addon.Profile.ShowAsPercent then 
-						weight = addon:GetWeightPercent(weight).."%"
-					end
-					weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
-				elseif weight < 0 then
-					if addon.Profile.ShowAsPercent then 
-						weight = addon:GetWeightPercent(weight).."%"
-					end
-					weight = RED_FONT_COLOR_CODE.."("..weight..")"
-				else
-					weight = ""
-				end
-			end
-
-			local text = ("%s-%s (%s)-\n%s%s %s\n "):format(titleColor, name, type, GRAY_FONT_COLOR_CODE,desc,weight)
-			local label = AceGUI:Create("Label") 
-			label:SetText(text)
-			label:SetImage(icon)
-			label:SetFont("Fonts\\FRIZQT__.TTF", 12)
-			label:SetImageSize(30,30)
-			label:SetRelativeWidth(1)
-			scroll:AddChild(label)
-		end
-	end
-end
 
 --Updates Weight Values & Names
 function addon:Update()
@@ -694,7 +576,6 @@ end
 
 
 function addon:GenerateToolip(tooltip)
-	--print("s")
 	if not self.Profile.ShowTooltipRank then return end
 
 	local name, itemLink = tooltip:GetItem()
@@ -714,7 +595,7 @@ end
 
 local ItemLevelPattern = gsub(ITEM_LEVEL, "%%d", "(%%d+)")
 
-function addon:ConduitTooltip_Rank(tooltip, rank)
+function addon:ConduitTooltip_Rank(tooltip, rank, row)
 	local text, level
 	local textLeft = tooltip.textLeft
 	if not textLeft then
@@ -726,6 +607,14 @@ function addon:ConduitTooltip_Rank(tooltip, rank)
 		end })
 		tooltip.textLeft = textLeft
 	end
+
+	if row and _G[tooltip:GetName() .. "TextLeft" .. 1] then
+		local colormarkup = DARKYELLOW_FONT_COLOR:GenerateHexColorMarkup() 
+		local line = textLeft[1]
+		text = _G[tooltip:GetName() .. "TextLeft" .. 1]:GetText() or ""
+		line:SetFormattedText(colormarkup.."Row %d: |r%s", row, text)
+	end
+
 	for i = 3, 5 do
 		if _G[tooltip:GetName() .. "TextLeft" .. i] then
 			local line = textLeft[i]

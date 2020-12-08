@@ -23,6 +23,43 @@ local conduitList = {}
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
+
+local function SortNodes(data)
+	local sortedNodes = {}
+	for _, nodes in pairs(data) do table.insert(sortedNodes, nodes) end
+	table.sort(sortedNodes, function(a,b) return a.row < b.row end)
+	return sortedNodes
+end
+
+
+local function GetPathData()
+	local pathData = {}
+	local icon, _
+	for i, nodeFrame in pairs(SoulbindViewer.Tree:GetNodes()) do
+		local node = nodeFrame.node
+		if node.state == 3 then 
+			pathData[node.ID] = {
+				state = node.state,
+				icon = node.icon,
+				row = node.row,
+				conduitID = node.conduitID,
+				spellID = node.spellID,
+			}
+
+			if node.row == 1 then 
+				icon = node.icon
+				local spellID = C_Soulbinds.GetConduitSpellID(node.conduitID, node.conduitRank)
+				_,_, icon = GetSpellInfo(spellID)
+				--else
+				--_, _, icon = GetSpellInfo(node.spellID)
+				--end
+			end
+		end
+	end
+	return pathData, icon
+end
+
+
 function addon:PathTooltip(parent, index)
 	if not addon.savedPathdb.char.paths[index] then return end
 
@@ -36,9 +73,7 @@ function addon:PathTooltip(parent, index)
 	GameTooltip:AddLine(("%s - %s"):format(covenantData.name, soulbindData.name),r,g,b)
 	GameTooltip:AddLine(" ")
 
-	 local pathList = {}
-		for k, v in pairs(data.data) do table.insert(pathList, v) end
-		table.sort(pathList, function(a,b) return a.row < b.row end)
+	 local pathList = SortNodes(data.data)
 
 		for i, pathEntry in ipairs(pathList) do
 			if pathEntry.conduitID > 0 then
@@ -66,41 +101,47 @@ function addon:PathTooltip(parent, index)
 	GameTooltip:Show()
 end
 
+function addon:ShowNodeTooltip(parent, data)
+	if not data then return end
 
-local function GetPathData()
-	local pathData = {}
-	local icon, _
-	for i, nodeFrame in pairs(SoulbindViewer.Tree:GetNodes()) do
-		local node = nodeFrame.node
-		if node.state == 3 then 
-			pathData[node.ID] = {
-				state = node.state,
-				icon = node.icon,
-				row = node.row,
-				conduitID = node.conduitID,
-				spellID = node.spellID,
-			}
+	GameTooltip:SetOwner(parent.frame, "ANCHOR_RIGHT")
 
-			if node.row == 1 then 
-				--if node.conduitID == 0 then
-				icon = node.icon
-				local spellID = C_Soulbinds.GetConduitSpellID(node.conduitID, node.conduitRank)
-				_,_, icon = GetSpellInfo(spellID)
+			if data.conduitID > 0 then
+				local collectionData = C_Soulbinds.GetConduitCollectionData(data.conduitID)
+				local quality = C_Soulbinds.GetConduitQuality(collectionData.conduitID, collectionData.conduitRank)
+				local spellID = C_Soulbinds.GetConduitSpellID(collectionData.conduitID, collectionData.conduitRank)
+				local name = GetSpellInfo(spellID)
+				--local desc = GetSpellDescription(spellID)
+				local colormarkup = DARKYELLOW_FONT_COLOR:GenerateHexColorMarkup()
+				GameTooltip:SetConduit(data.conduitID, collectionData.conduitRank)
+--print(GameTooltip:SetConduit(data.conduitID, collectionData.conduitRank))
 
-				--else
-				--_, _, icon = GetSpellInfo(node.spellID)
-				--end
+				addon:ConduitTooltip_Rank(GameTooltip, collectionData.conduitRank, data.row + 1)
+
+
+				--GameTooltip:AddLine(string.format(L[colormarkup.."Row %d: |r%s - Rank:%s |cffffffff(%s)|r"],i, name, collectionData.conduitRank,Soulbinds.GetConduitName(collectionData.conduitType)), unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()}))
+				--GameTooltip:AddLine(string.format("Rank:%s", collectionData.conduitRank, unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()})))
+				--GameTooltip:AddLine(desc, nil, nil, nil, true)
+				--GameTooltip:AddLine(" ")
+			else
+				local spellID = data.spellID
+				local name = GetSpellInfo(spellID)
+				local desc = GetSpellDescription(spellID)
+
+				GameTooltip:AddLine(string.format("Row %d: |cffffffff%s|r", data.row + 1 , name))
+			  --  GameTooltip:AddLine(string.format("Rank:%s", name, unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()})))
+				GameTooltip:AddLine(desc, nil, nil, nil, true)
+				--GameTooltip:AddLine(" ")
 			end
-		end
-	end
-	return pathData, icon
+		
+	GameTooltip:Show()
 end
 
 
 function addon:SavePath()
 	local covenantID = C_Covenants.GetActiveCovenantID()
 	local soulbindID = SoulbindViewer:GetOpenSoulbindID()
-	local pathData, icon  = addon:GetPathData()
+	local pathData, icon  = GetPathData()
 
 	local Path = {
 		icon = icon,
@@ -263,4 +304,99 @@ function CovenantForge_SavedPathMixin:OnClick()
 	Path.name = self:GetParent().EditBox:GetText(),
 	table.insert(addon.savedPathdb.char.paths, Path)
 	addon:UpdateSavedPathsList()
+end
+
+
+function addon:UpdateSavedPathsList()
+	if not addon.savedPathdb.char.paths or not addon.scrollcontainer then return end
+	local scrollcontainer = addon.scrollcontainer
+	scrollcontainer:ReleaseChildren()
+	scroll = AceGUI:Create("ScrollFrame")
+	scroll:SetLayout("Flow") -- probably?
+	scrollcontainer:AddChild(scroll)
+
+	for i, data in ipairs(addon.savedPathdb.char.paths) do
+		local container = AceGUI:Create("SimpleGroup") 
+		container:SetLayout("Fill")
+
+		local topHeading = AceGUI:Create("Heading") 
+		topHeading:SetRelativeWidth(1)
+		topHeading:SetHeight(5)
+		scroll:AddChild(topHeading)
+		--container:AddChild(topHeading)
+		local InteractiveLabel = AceGUI:Create("InteractiveLabel")
+		InteractiveLabel:SetText(data.name.."\n \n  \n  \n  \n ")
+		InteractiveLabel:SetJustifyH("TOP")
+		InteractiveLabel.label:SetPoint("TOP", container.frame, "TOP", 0 ,10)
+		InteractiveLabel.label:SetHeight(InteractiveLabel.label:GetStringHeight())
+		--InteractiveLabel:SetImage(data.icon)
+		InteractiveLabel:SetImage(data.icon)
+		InteractiveLabel:SetImageSize(1,35)
+		InteractiveLabel:SetHeight(35)
+		InteractiveLabel.image:ClearAllPoints()
+		--InteractiveLabel.image:SetPoint("LEFT",-999)
+		InteractiveLabel.image:SetAlpha(0)
+		InteractiveLabel:SetRelativeWidth(1)
+		--InteractiveLabel:SetPoint("CENTER")
+		InteractiveLabel:SetCallback("OnClick", function() addon:SelectPath(i) end)
+		InteractiveLabel:SetCallback("OnEnter", function() addon:PathTooltip(InteractiveLabel, i) end)
+		InteractiveLabel:SetCallback("OnLeave", function() GameTooltip:Hide() end)
+
+		local UpdateButton =  AceGUI:Create("Icon") 
+		UpdateButton:SetImage("Interface/Buttons/UI-OptionsButton")
+		UpdateButton:SetImageSize(15,15)
+		UpdateButton:SetHeight(18)
+		UpdateButton:SetWidth(18)
+
+		UpdateButton:SetCallback("OnClick", function()
+				if (not StaticPopup_Visible("COVENANTFORGE_UPDATEPOPUP")) then
+				addon:ShowPopup("COVENANTFORGE_UPDATEPOPUP", i)
+				end  end)
+		UpdateButton:SetCallback("OnEnter", function() GameTooltip:SetOwner(UpdateButton.frame, "ANCHOR_RIGHT"); GameTooltip:AddLine(L["Options"]); GameTooltip:Show() end)
+		UpdateButton:SetCallback("OnLeave", function() GameTooltip:Hide() end)
+		UpdateButton:SetRelativeWidth(.1)
+		UpdateButton.index = i
+
+
+		container:AddChild(InteractiveLabel)
+		container:AddChild(UpdateButton)
+
+		UpdateButton:ClearAllPoints()
+		UpdateButton.frame:SetPoint("TOPRIGHT",container.frame,"TOPRIGHT", 0, 5)
+		UpdateButton.frame:SetFrameLevel(200)
+
+		container:SetHeight(35)
+		container:SetFullWidth(true)
+		--scroll:AddChild(container)
+		container:SetAutoAdjustHeight(false)
+
+		--container = AceGUI:Create("SimpleGroup") 
+		--container:SetLayout("Flow")
+		--container:SetFullWidth(true)
+		--container:SetHeight(30)
+		--container:SetAutoAdjustHeight(false)
+		local sortedNodes = SortNodes(data.data)
+		local index = 0
+		for id, data in pairs(sortedNodes) do
+			local nodeIcon = AceGUI:Create("Icon")
+			if data.conduitID > 0 then 
+				local spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, 1)
+				local _,_, icon = GetSpellInfo(spellID)
+				nodeIcon:SetImage(icon)
+			else
+				local _,_, icon = GetSpellInfo(data.spellID)
+				nodeIcon:SetImage(icon)
+			end
+			nodeIcon:SetImageSize(25,25)
+			nodeIcon:SetWidth(26)
+			nodeIcon:SetCallback("OnClick", function() addon:SelectPath(i) end)
+			nodeIcon:SetCallback("OnEnter", function() addon:ShowNodeTooltip(nodeIcon, data) end)
+			nodeIcon:SetCallback("OnLeave", function() GameTooltip:Hide() end)
+			container:AddChild(nodeIcon)
+			nodeIcon.frame:SetPoint("BOTTOMLEFT", container.frame, "BOTTOMLEFT", 26 * index, -7)
+			nodeIcon.frame:SetFrameLevel(200)
+			index = index + 1
+		end
+		scroll:AddChild(container)
+	end
 end

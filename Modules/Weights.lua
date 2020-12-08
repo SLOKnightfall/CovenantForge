@@ -211,48 +211,82 @@ function addon:GetWeightPercent(weight)
 end
 
 
-function addon:GenerateToolip(tooltip)
-	--print("s")
-	if not self.Profile.ShowTooltipRank then return end
 
-	local name, itemLink = tooltip:GetItem()
-	if not name then return end
+function addon:UpdateWeightList()
+	scrollcontainer:ReleaseChildren()
 
-	if C_Soulbinds.IsItemConduitByItemInfo(itemLink) then
-		local itemLevel = select(4, GetItemInfo(itemLink))
+	scroll = AceGUI:Create("ScrollFrame")
+	scroll:SetLayout("Flow") -- probably?
+	scrollcontainer:AddChild(scroll)
 
-		for rank, level in pairs(CONDUIT_RANKS) do
-			if itemLevel == level then
-				self:ConduitTooltip_Rank(tooltip, rank);
+	--local scrollframe = addon.ScrollFrame
+
+	for i, typedata in pairs(conduitList) do
+		local collectionData = C_Soulbinds.GetConduitCollection(i)
+
+
+		local topHeading = AceGUI:Create("Heading") 
+		topHeading:SetRelativeWidth(1)
+		topHeading:SetHeight(5)
+		local bottomHeading = AceGUI:Create("Heading") 
+		bottomHeading:SetRelativeWidth(1)
+		bottomHeading:SetHeight(5)
+
+		local label = AceGUI:Create("Label") 
+			label:SetText(Soulbinds.GetConduitName(i))
+			local atlas = Soulbinds.GetConduitEmblemAtlas(i);
+			--label:SetImage(icon)
+			label:SetImage("Interface/Buttons/UI-OptionsButton")
+
+			label.image:SetAtlas(atlas)
+			label:SetFontObject(GameFontHighlightLarge)
+
+			--label.image.imageshown = true
+			label:SetImageSize(30,30)
+			label:SetRelativeWidth(1)
+			scroll:AddChild(topHeading)
+			scroll:AddChild(label)
+			scroll:AddChild(bottomHeading)
+
+		for i, data in pairs(typedata) do
+			local name = data[1]
+			local type = Soulbinds.GetConduitName(data[3])
+			local spellID = data[2]
+			local desc = GetSpellDescription(spellID)
+			local _,_, icon = GetSpellInfo(spellID)
+			local titleColor = ORANGE_FONT_COLOR_CODE
+			for i, data in ipairs(collectionData) do
+				local c_spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, data.conduitRank)
+				if c_spellID == spellID then 
+					titleColor = GREEN_FONT_COLOR_CODE
+					break
+				end
 			end
-		end
-	end
-end
-
-
-local ItemLevelPattern = gsub(ITEM_LEVEL, "%%d", "(%%d+)")
-
-function addon:ConduitTooltip_Rank(tooltip, rank)
-	local text, level
-	local textLeft = tooltip.textLeft
-	if not textLeft then
-		local tooltipName = tooltip:GetName()
-		textLeft = setmetatable({}, { __index = function(t, i)
-			local line = _G[tooltipName .. "TextLeft" .. i]
-			t[i] = line
-			return line
-		end })
-		tooltip.textLeft = textLeft
-	end
-	for i = 3, 5 do
-		if _G[tooltip:GetName() .. "TextLeft" .. i] then
-			local line = textLeft[i]
-			text = _G[tooltip:GetName() .. "TextLeft" .. i]:GetText() or ""
-			level = string.match(text, ItemLevelPattern)
-			if (level) then
-				line:SetFormattedText("%s (Rank %d)", text, rank);
-				return ;
+			local weight = addon:GetWeightData(i, viewed_spec)
+			if weight then
+				if weight > 0 then
+					if addon.Profile.ShowAsPercent then 
+						weight = addon:GetWeightPercent(weight).."%"
+					end
+					weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
+				elseif weight < 0 then
+					if addon.Profile.ShowAsPercent then 
+						weight = addon:GetWeightPercent(weight).."%"
+					end
+					weight = RED_FONT_COLOR_CODE.."("..weight..")"
+				else
+					weight = ""
+				end
 			end
+
+			local text = ("%s-%s (%s)-\n%s%s %s\n "):format(titleColor, name, type, GRAY_FONT_COLOR_CODE,desc,weight)
+			local label = AceGUI:Create("Label") 
+			label:SetText(text)
+			label:SetImage(icon)
+			label:SetFont("Fonts\\FRIZQT__.TTF", 12)
+			label:SetImageSize(30,30)
+			label:SetRelativeWidth(1)
+			scroll:AddChild(label)
 		end
 	end
 end
