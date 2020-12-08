@@ -1,7 +1,8 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 	<Script file="CovenantForge.lua"/>
-	
+	<Script file="Modules\SavedPaths.lua"/>
+	<Script file="Modules\Weights.lua"/>	
 
 	<Frame name="CovenantForge_SoulbindInfoTemplate" parentKey="SoulbindInfo" virtual="true" setAllPoints="true" frameLevel="150">
 		<Anchors>

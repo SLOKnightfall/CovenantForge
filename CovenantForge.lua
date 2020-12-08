@@ -193,7 +193,7 @@ local SoulbindConduitNodeEvents =
 
 function addon:OnEnable()
 	addon:BuildWeightData()
-	addon:GetConduits()
+	addon:GetClassConduits()
 	local spec = GetSpecialization()
 	viewed_spec = GetSpecializationInfo(spec)
 
@@ -419,11 +419,8 @@ function addon:UpdateConduitList()
 	scroll:SetLayout("Flow") -- probably?
 	scrollcontainer:AddChild(scroll)
 
-	--local scrollframe = addon.ScrollFrame
-
 	for i, typedata in pairs(conduitList) do
 		local collectionData = C_Soulbinds.GetConduitCollection(i)
-
 
 		local topHeading = AceGUI:Create("Heading") 
 		topHeading:SetRelativeWidth(1)
@@ -449,44 +446,48 @@ function addon:UpdateConduitList()
 			scroll:AddChild(bottomHeading)
 
 		for i, data in pairs(typedata) do
-			local name = data[1]
-			local type = Soulbinds.GetConduitName(data[3])
-			local spellID = data[2]
-			local desc = GetSpellDescription(spellID)
-			local _,_, icon = GetSpellInfo(spellID)
-			local titleColor = ORANGE_FONT_COLOR_CODE
-			for i, data in ipairs(collectionData) do
-				local c_spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, data.conduitRank)
-				if c_spellID == spellID then 
-					titleColor = GREEN_FONT_COLOR_CODE
-					break
-				end
-			end
-			local weight = addon:GetWeightData(i, viewed_spec)
-			if weight then
-				if weight > 0 then
-					if addon.Profile.ShowAsPercent then 
-						weight = addon:GetWeightPercent(weight).."%"
+			for _,spec in ipairs(data[4]) do
+				if viewed_spec == spec then 
+					local name = data[1]
+					local type = Soulbinds.GetConduitName(data[3])
+					local spellID = data[2]
+					local desc = GetSpellDescription(spellID)
+					local _,_, icon = GetSpellInfo(spellID)
+					local titleColor = ORANGE_FONT_COLOR_CODE
+					for _, data in ipairs(collectionData) do
+						local c_spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, data.conduitRank)
+						if c_spellID == spellID then 
+							titleColor = GREEN_FONT_COLOR_CODE
+							break
+						end
 					end
-					weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
-				elseif weight < 0 then
-					if addon.Profile.ShowAsPercent then 
-						weight = addon:GetWeightPercent(weight).."%"
+					local weight = addon:GetWeightData(i, viewed_spec)
+					if weight then
+						if weight > 0 then
+							if addon.Profile.ShowAsPercent then 
+								weight = addon:GetWeightPercent(weight).."%"
+							end
+							weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
+						elseif weight < 0 then
+							if addon.Profile.ShowAsPercent then 
+								weight = addon:GetWeightPercent(weight).."%"
+							end
+							weight = RED_FONT_COLOR_CODE.."("..weight..")"
+						else
+							weight = ""
+						end
 					end
-					weight = RED_FONT_COLOR_CODE.."("..weight..")"
-				else
-					weight = ""
-				end
-			end
 
-			local text = ("%s-%s (%s)-\n%s%s %s\n "):format(titleColor, name, type, GRAY_FONT_COLOR_CODE,desc,weight)
-			local label = AceGUI:Create("Label") 
-			label:SetText(text)
-			label:SetImage(icon)
-			label:SetFont("Fonts\\FRIZQT__.TTF", 12)
-			label:SetImageSize(30,30)
-			label:SetRelativeWidth(1)
-			scroll:AddChild(label)
+					local text = ("%s-%s (%s)-\n%s%s %s\n "):format(titleColor, name, type, GRAY_FONT_COLOR_CODE,desc,weight)
+					local label = AceGUI:Create("Label") 
+					label:SetText(text)
+					label:SetImage(icon)
+					label:SetFont("Fonts\\FRIZQT__.TTF", 12)
+					label:SetImageSize(30,30)
+					label:SetRelativeWidth(1)
+					scroll:AddChild(label)
+				end
+			end
 		end
 	end
 end
@@ -569,175 +570,6 @@ function addon:UpdateWeightList()
 			scroll:AddChild(label)
 		end
 	end
-end
-
-
-function addon:PathTooltip(parent, index)
-	if not addon.savedPathdb.char.paths[index] then return end
-
-	local data = addon.savedPathdb.char.paths[index]
-	local covenantData = C_Covenants.GetCovenantData(data.covenantID)
-	local soulbindData = C_Soulbinds.GetSoulbindData(data.soulbindID)
-	local r,g,b = COVENANT_COLORS[data.covenantID]:GetRGB()
-
-	GameTooltip:SetOwner(parent.frame, "ANCHOR_RIGHT")
-
-	GameTooltip:AddLine(("%s - %s"):format(covenantData.name, soulbindData.name),r,g,b)
-	GameTooltip:AddLine(" ")
-
-	 local pathList = {}
-		for k, v in pairs(data.data) do table.insert(pathList, v) end
-		table.sort(pathList, function(a,b) return a.row < b.row end)
-
-		for i, pathEntry in ipairs(pathList) do
-			if pathEntry.conduitID > 0 then
-				local collectionData = C_Soulbinds.GetConduitCollectionData(pathEntry.conduitID)
-				local quality = C_Soulbinds.GetConduitQuality(collectionData.conduitID, collectionData.conduitRank)
-				print(ITEM_QUALITY_COLORS[quality].color:GetRGB())
-
-
-				local spellID = C_Soulbinds.GetConduitSpellID(collectionData.conduitID, collectionData.conduitRank)
-				local name = GetSpellInfo(spellID)
-				--local desc = GetSpellDescription(spellID)
-				local colormarkup = DARKYELLOW_FONT_COLOR:GenerateHexColorMarkup()
-				GameTooltip:AddLine(string.format(L[colormarkup.."Row%d: |r%s - Rank:%s |cffffffff(%s)|r"],i, name, collectionData.conduitRank,Soulbinds.GetConduitName(collectionData.conduitType)), unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()}))
-				--GameTooltip:AddLine(string.format("Rank:%s", collectionData.conduitRank, unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()})))
-				--GameTooltip:AddLine(desc, nil, nil, nil, true)
-				--GameTooltip:AddLine(" ")
-			  else
-				local spellID = pathEntry.spellID
-				local name = GetSpellInfo(spellID)
-				local desc = GetSpellDescription(spellID)
-
-				GameTooltip:AddLine(string.format("Row%d: |cffffffff%s|r", i, name))
-			  --  GameTooltip:AddLine(string.format("Rank:%s", name, unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()})))
-				--GameTooltip:AddLine(desc, nil, nil, nil, true)
-				--GameTooltip:AddLine(" ")
-			end
-		end
-
-	GameTooltip:Show()
-end
-
-
-function addon:GetPathData()
-	local pathData = {}
-	local icon, _
-	for i, nodeFrame in pairs(SoulbindViewer.Tree:GetNodes()) do
-			local node = nodeFrame.node
-			--local nodeID = nodeFrame.node.ID
-			--local conduitID = C_Soulbinds.GetInstalledConduitID(node.ID)
-
-		if node.state == 3 and node.row ~=0 then 
-
-				pathData[node.ID] = {
-					state = node.state,
-					icon = node.icon,
-					row = node.row,
-					conduitID = node.conduitID,
-					spellID = node.spellID,
-
-				}
-			if node.row == 1 then 
-				--if node.conduitID == 0 then
-					icon = node.icon
-				local spellID = C_Soulbinds.GetConduitSpellID(node.conduitID, node.conduitRank)
-				_,_, icon = GetSpellInfo(spellID)
-
-				--else
-				--_, _, icon = GetSpellInfo(node.spellID)
-				--end
-			end
-		end
-		 
-
-	end
-	return pathData, icon
-end
-
-
-function addon:DeletePath(index)
-	table.remove(addon.savedPathdb.char.paths, index)
-	addon:UpdateSavedPathsList()
-end
-
-
-function addon:SelectPath(index)
-	local pathData = addon.savedPathdb.char.paths[index]
-
-	if not pathData then return end
-	if not C_Soulbinds.CanSwitchActiveSoulbindTreeBranch() then
-		print("Need Rest ARea")
-		return
-	end
-
-	local covenantData = C_Covenants.GetCovenantData(pathData.covenantID)
-	local soulbindIDs = covenantData.soulbindIDs
-	local soulbindID = pathData.soulbindID
-
-	local currentSoulbindId = SoulbindViewer:GetOpenSoulbindID()
-	local currentSoulbindData = C_Soulbinds.GetSoulbindData(currentSoulbindId)
-
-	-- Check if the selection would make any changes (so we can abort if not at the Forge of Bonds)
-	if not C_Soulbinds.CanModifySoulbind() then
-		for nodeID, pathEntry in pairs(pathData.data) do
-			local currentNode = C_Soulbinds.GetNode(nodeID)
-
-			-- If the conduit is different to the one saved, modify it
-			if currentNode.conduitID ~= pathEntry.conduitID then
-				print("NF")
-				return
-			end
-		end
-	end
-
-	-- Reset any currently open souldbind changes
-	for i, node in pairs(currentSoulbindData.tree.nodes) do
-		if C_Soulbinds.IsNodePendingModify(node.ID) then
-			C_Soulbinds.UnmodifyNode(node.ID)
-			C_Soulbinds.UnmodifyNode(node.ID)
-		end
-	end
-
-	-- Select the request soulbind if not currently viewing it
-	if currentSoulbindId ~= soulbindID then
-		SoulbindViewer.SelectGroup.buttonGroup:SelectAtIndex(tIndexOf(soulbindIDs, soulbindID))
-	end
-
-	-- Choose the nodes per the saved path
-	for nodeID, pathEntry in pairs(pathData.data) do
-		local currentNode = C_Soulbinds.GetNode(nodeID)
-
-		-- if any existing changes for this node, cancel them
-		if C_Soulbinds.IsNodePendingModify(nodeID) then
-			C_Soulbinds.UnmodifyNode(nodeID)
-			C_Soulbinds.UnmodifyNode(nodeID)
-		end
-
-		-- If the conduit is different to the one saved, modify it
-		if currentNode.conduitID ~= pathEntry.conduitID then
-			C_Soulbinds.ModifyNode(nodeID, pathEntry.conduitID, 0)
-		end
-
-		-- If the node saves was selected, select it too
-		if pathEntry.state == 3 then
-			C_Soulbinds.SelectNode(nodeID)
-		end
-	end
-
-	-- Activate the Soulbind if not current
-	if C_Soulbinds.GetActiveSoulbindID() ~= soulbindID then
-		SoulbindViewer:OnActivateSoulbindClicked()
-	end
-
-	-- THIS AUTO ACCEPTS, PROBABLY A BAD IDEA TO USE IT...
-	-- C_Soulbinds.CommitPendingConduitsInSoulbind(soulbindID)
-
-	-- Prompt if there's any changes as a result of the new path/conduits
-	--if SCMdb.settings.attemptApply and C_Soulbinds.HasAnyPendingConduits() then
-		--SoulbindViewer:OnCommitConduitsClicked()
-   -- end
-	
 end
 
 --Updates Weight Values & Names
@@ -860,179 +692,6 @@ function addon:Update()
 	end
 end
 
-local Weights = {}
-local ilevel = {}
-function addon:BuildWeightData()
-	local spec = GetSpecialization()
-	local specID, specName = GetSpecializationInfo(spec)
-	local _, _, classID = UnitClass("player")
-	local covenantID = C_Covenants.GetActiveCovenantID();
-	local classSpecs = CLASS_SPECS[classID]
-	for i,spec in ipairs(classSpecs) do
-		if addon.Weights["PR"][spec] then 
-			local data = addon.Weights["PR"][spec][covenantID]
-			Weights[spec] =  {}
-			for i=2, #data do
-				local conduitData = data[i]
-				local name = string.gsub(conduitData[1],' %(.+%)',"")
-				local ilevel ={}
-				for index = 2, #conduitData do
-					local ilevelData = data[1][index]
-					ilevel[ilevelData] = conduitData[index]
-				end
-				Weights[spec][name] = ilevel
-			end
-		end
-
-	end
-end
-
-
-function addon:GetWeightData(conduitID, specID)
-	if not addon.Conduits[conduitID] or not Weights[specID] then return 0 end
-	local soulbindName = addon.Conduits[conduitID][1]
-	--if soulbindName == "Rejuvenating Wind" then return 31 end
-	local collectionData  = C_Soulbinds.GetConduitCollectionData(conduitID)
-	local conduitItemLevel = collectionData and collectionData.conduitItemLevel or 145
-
-	if Weights[specID][soulbindName] then 
-		local weight = Weights[specID][soulbindName][conduitItemLevel]
-		return weight
-	end
-
-	return 0
-end
-
-
-function addon:GetTalentWeight(spellID, specID)
-	--if spellID == 320658 then return 51 end
-	if not addon.Soulbinds[spellID] or not Weights[specID] then return 0 end
-	local name = addon.Soulbinds[spellID]
-	if Weights[specID][name] then 
-		local weight = Weights[specID][name][1]
-		return weight
-	end
-
-	return 0
-end
-
-
-local function BuildTreeData(tree)
-	local parentNodeTable = {}
-	local parentNodeData = {}
-	for i, data in ipairs(tree) do
-		parentNodeData[data.ID] = data
-		local parentNodeIDs = data.parentNodeIDs
-		if #parentNodeIDs == 1  and data.row ~= 0 then 
-			parentNodeTable[data.ID] = data.parentNodeIDs[1]
-		--  print(data.parentNodeIDs[1])
-		end
-	end
-	return parentNodeTable, parentNodeData
-end
-
-
-function addon:GetSoulbindWeight(soulbindID)
-	local data = C_Soulbinds.GetSoulbindData(soulbindID)
-	local tree = data.tree.nodes
-	local parentNodeTable, parentNodeData = BuildTreeData(tree) 
-
-	local selectedWeight = {}
-	local unlockedWeights = {}
-	local maxNodeWeights = {}
-	local maxConduitWeights = {}
-	local parentRow = {}
-
-	for i, data in ipairs(tree) do
-		local row = data.row  --RowID starts at 0
-		local conduitID = data.conduitID
-		local spellID = data.spellID
-		local state = data.state
-		local weight
-		local maxTable
-		local selectedTable
-		local unlockedTable
-		
-
-		local parentNode = parentNodeTable[data.ID]
-		local parentData = parentNodeData[parentNode]
-		local parentWeight = 0
-		
-		
-		if conduitID == 0 then
-			weight = addon:GetTalentWeight(spellID, viewed_spec)
-
-			maxTable = maxNodeWeights
-		else
-			weight = addon:GetWeightData(conduitID, viewed_spec)
-
-			maxTable = maxConduitWeights
-		end
-
-		if parentData and parentData.conduitID == 0 then
-				parentWeight = addon:GetTalentWeight(parentData.spellID, viewed_spec)
-				parentRow[parentData.row] = true
-		elseif parentData then 
-			parentWeight = addon:GetWeightData(parentData.conduitID, viewed_spec)
-			parentRow[parentData.row] = true
-		end
-
-		if weight and state == 3 then
-			selectedWeight[row] = weight
-		end
-
-		unlockedWeights[row] = unlockedWeights[row] or 0
-		if weight and state ~= 0 and  weight + parentWeight >= unlockedWeights[row] then
-			unlockedWeights[row] = weight + parentWeight 
-		end
-
-		maxTable[row] = maxTable[row] or 0
-		if weight and weight + parentWeight  >= maxTable[row] then
-			maxTable[row] = weight + parentWeight 
-		end
-	end
-
-	for i, data in pairs(parentRow)do
-		if i ~=0 then 
-			maxNodeWeights[i] = 0
-			unlockedWeights[i] = 0
-			maxConduitWeights[i] = 0
-		end
-	end
-
-	local selectedTotal = 0
-	for i, value in pairs(selectedWeight) do
-		selectedTotal = selectedTotal + value
-	end
-
-	local unlockedTotal = 0
-	for i, value in pairs(unlockedWeights) do
-		unlockedTotal = unlockedTotal + value
-	end
-
-
-	local nodeMax = 0
-	for i, value in pairs(maxNodeWeights) do
-		nodeMax = nodeMax + value
-	end
-
-
-	local conduitMax = 0
-	for i, value in pairs(maxConduitWeights) do
-		conduitMax = conduitMax + value
-	end
-
-	return selectedTotal, unlockedTotal, nodeMax, conduitMax
-end
-
-
-function addon:GetWeightPercent(weight)
-	local percent = weight/WEIGHT_BASE
-
-	 --return percent>=0 and math.floor(percent+0.5) or math.ceil(percent-0.5)
- return  tonumber(string.format("%.2f", percent))
-end
-
 
 function addon:GenerateToolip(tooltip)
 	--print("s")
@@ -1114,37 +773,11 @@ function addon:StopNodeFX(viewer)
 	end
 end
 
-function addon:SavePath()
-	local covenantID = C_Covenants.GetActiveCovenantID()
-	local soulbindID = SoulbindViewer:GetOpenSoulbindID()
-	local pathData, icon  = addon:GetPathData()
 
-	local Path = {
-		icon = icon,
-		covenantID = covenantID,
-		soulbindID =  soulbindID,
-		data = pathData,    
-	}
-
-	return Path
-end
-
-CovenantForge_SavedPathMixin = {}
-function CovenantForge_SavedPathMixin:OnClick()
-   if string.len(self:GetParent().EditBox:GetText()) <= 0 then return end
-
-	local Path = addon:SavePath()
-	Path.name = self:GetParent().EditBox:GetText(),
-	table.insert(addon.savedPathdb.char.paths, Path)
-	addon:UpdateSavedPathsList()
-end
-
-
-function addon:GetConduits()
+function addon:GetClassConduits()
 	local className, classFile, classID = UnitClass("player")
 	local classSpecs = CLASS_SPECS[classID]
 	
-
 	for i, data in pairs(addon.Conduits) do
 		local valid = false
 		for i, spec in ipairs(classSpecs) do
@@ -1163,7 +796,6 @@ function addon:GetConduits()
 			conduitList[type] = conduitList[type] or {}
 			conduitList[type][i] = data
 		end
-
 	end
 end
 
@@ -1208,42 +840,3 @@ end
 
 
 ]]
-
-function addon:ShowPopup(popup, index)
-	StaticPopupSpecial_Show(CovenantForge_SavedPathEditFrame)
-	local data = addon.savedPathdb.char.paths[index]
-	CovenantForge_SavedPathEditFrame.EditBox:SetText(data.name)
-	CovenantForge_SavedPathEditFrame.pathIndex = index
-
-		--StaticPopup_Show(popup, ...)
-
-end
-
-
-function addon:ClosePopups()
-	StaticPopupSpecial_Hide(CovenantForge_SavedPathEditFrame)
-end
-
-
-CovenantForge_SavedPathEditFrameMixin = {}
-function CovenantForge_SavedPathEditFrameMixin:OnDelete()
-	addon:DeletePath(self.pathIndex)
-	addon:ClosePopups()
-end
-
-
-function CovenantForge_SavedPathEditFrameMixin:OnAccept()
-	local data = addon.savedPathdb.char.paths[self.pathIndex]
-	data.name = CovenantForge_SavedPathEditFrame.EditBox:GetText()
-	addon:UpdateSavedPathsList()
-	addon:ClosePopups()
-end
-
-
-function CovenantForge_SavedPathEditFrameMixin:OnUpdate()
-	local name = addon.savedPathdb.char.paths[self.pathIndex].name
-	addon.savedPathdb.char.paths[self.pathIndex] = addon:SavePath()
-	addon.savedPathdb.char.paths[self.pathIndex].name = name
-	addon:UpdateSavedPathsList()
-	addon:ClosePopups()
-end
