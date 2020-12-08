@@ -12,17 +12,7 @@
 local addonName, addon = ...
 addon = LibStub("AceAddon-3.0"):GetAddon(addonName)
 local AceGUI = LibStub("AceGUI-3.0")
-
-local playerInv_DB
-local Profile
-local playerNme
-local realmName
-local playerClass, classID,_
-local viewed_spec
-local conduitList = {}
-
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
-
 
 local function SortNodes(data)
 	local sortedNodes = {}
@@ -101,38 +91,28 @@ function addon:PathTooltip(parent, index)
 	GameTooltip:Show()
 end
 
+
 function addon:ShowNodeTooltip(parent, data)
 	if not data then return end
 
 	GameTooltip:SetOwner(parent.frame, "ANCHOR_RIGHT")
 
-			if data.conduitID > 0 then
-				local collectionData = C_Soulbinds.GetConduitCollectionData(data.conduitID)
-				local quality = C_Soulbinds.GetConduitQuality(collectionData.conduitID, collectionData.conduitRank)
-				local spellID = C_Soulbinds.GetConduitSpellID(collectionData.conduitID, collectionData.conduitRank)
-				local name = GetSpellInfo(spellID)
-				--local desc = GetSpellDescription(spellID)
-				local colormarkup = DARKYELLOW_FONT_COLOR:GenerateHexColorMarkup()
-				GameTooltip:SetConduit(data.conduitID, collectionData.conduitRank)
---print(GameTooltip:SetConduit(data.conduitID, collectionData.conduitRank))
-
-				addon:ConduitTooltip_Rank(GameTooltip, collectionData.conduitRank, data.row + 1)
-
-
-				--GameTooltip:AddLine(string.format(L[colormarkup.."Row %d: |r%s - Rank:%s |cffffffff(%s)|r"],i, name, collectionData.conduitRank,Soulbinds.GetConduitName(collectionData.conduitType)), unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()}))
-				--GameTooltip:AddLine(string.format("Rank:%s", collectionData.conduitRank, unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()})))
-				--GameTooltip:AddLine(desc, nil, nil, nil, true)
-				--GameTooltip:AddLine(" ")
-			else
-				local spellID = data.spellID
-				local name = GetSpellInfo(spellID)
-				local desc = GetSpellDescription(spellID)
-
-				GameTooltip:AddLine(string.format("Row %d: |cffffffff%s|r", data.row + 1 , name))
-			  --  GameTooltip:AddLine(string.format("Rank:%s", name, unpack({ITEM_QUALITY_COLORS[quality].color:GetRGB()})))
-				GameTooltip:AddLine(desc, nil, nil, nil, true)
-				--GameTooltip:AddLine(" ")
-			end
+	if data.conduitID > 0 then
+		local collectionData = C_Soulbinds.GetConduitCollectionData(data.conduitID)
+		local quality = C_Soulbinds.GetConduitQuality(collectionData.conduitID, collectionData.conduitRank)
+		local spellID = C_Soulbinds.GetConduitSpellID(collectionData.conduitID, collectionData.conduitRank)
+		local name = GetSpellInfo(spellID)
+		--local desc = GetSpellDescription(spellID)
+		local colormarkup = DARKYELLOW_FONT_COLOR:GenerateHexColorMarkup()
+		GameTooltip:SetConduit(data.conduitID, collectionData.conduitRank)
+		addon:ConduitTooltip_Rank(GameTooltip, collectionData.conduitRank, data.row + 1)
+	else
+		local spellID = data.spellID
+		local name = GetSpellInfo(spellID)
+		local desc = GetSpellDescription(spellID)
+		GameTooltip:AddLine(string.format("Row %d: |cffffffff%s|r", data.row + 1 , name))
+		GameTooltip:AddLine(desc, nil, nil, nil, true)
+	end
 		
 	GameTooltip:Show()
 end
@@ -160,12 +140,12 @@ function addon:DeletePath(index)
 end
 
 
-function addon:SelectPath(index)
+function addon:LoadPath(index, macro)
 	local pathData = addon.savedPathdb.char.paths[index]
 
 	if not pathData then return end
 	if not C_Soulbinds.CanSwitchActiveSoulbindTreeBranch() then
-		print("Need Rest ARea")
+		print(SOULBIND_NODE_UNSELECTED)
 		return
 	end
 
@@ -176,20 +156,26 @@ function addon:SelectPath(index)
 	local currentSoulbindId = SoulbindViewer:GetOpenSoulbindID()
 	local currentSoulbindData = C_Soulbinds.GetSoulbindData(currentSoulbindId)
 
-	-- Check if the selection would make any changes (so we can abort if not at the Forge of Bonds)
 	if not C_Soulbinds.CanModifySoulbind() then
-		for nodeID, pathEntry in pairs(pathData.data) do
+		for nodeID, pathData in pairs(pathData.data) do
 			local currentNode = C_Soulbinds.GetNode(nodeID)
-
-			-- If the conduit is different to the one saved, modify it
-			if currentNode.conduitID ~= pathEntry.conduitID then
-				print("NF")
+			if currentNode.conduitID ~= pathData.conduitID then
+				print(L["Requires the Forge of Bonds to modify."])
 				return
 			end
 		end
 	end
 
-	-- Reset any currently open souldbind changes
+	if currentSoulbindId ~= soulbindID then
+		SoulbindViewer.SelectGroup.buttonGroup:SelectAtIndex(tIndexOf(soulbindIDs, soulbindID))
+	end
+	
+	if C_Soulbinds.GetActiveSoulbindID() ~= soulbindID and macro then
+		C_Soulbinds.ActivateSoulbind(soulbindID)
+	elseif C_Soulbinds.GetActiveSoulbindID() ~= soulbindID then
+		SoulbindViewer:OnActivateSoulbindClicked()
+	end
+
 	for i, node in pairs(currentSoulbindData.tree.nodes) do
 		if C_Soulbinds.IsNodePendingModify(node.ID) then
 			C_Soulbinds.UnmodifyNode(node.ID)
@@ -197,51 +183,46 @@ function addon:SelectPath(index)
 		end
 	end
 
-	-- Select the request soulbind if not currently viewing it
-	if currentSoulbindId ~= soulbindID then
-		SoulbindViewer.SelectGroup.buttonGroup:SelectAtIndex(tIndexOf(soulbindIDs, soulbindID))
-	end
-
-	-- Choose the nodes per the saved path
-	for nodeID, pathEntry in pairs(pathData.data) do
+	for nodeID, pathData in pairs(pathData.data) do
 		local currentNode = C_Soulbinds.GetNode(nodeID)
 
-		-- if any existing changes for this node, cancel them
 		if C_Soulbinds.IsNodePendingModify(nodeID) then
 			C_Soulbinds.UnmodifyNode(nodeID)
 			C_Soulbinds.UnmodifyNode(nodeID)
 		end
 
-		-- If the conduit is different to the one saved, modify it
-		if currentNode.conduitID ~= pathEntry.conduitID then
-			C_Soulbinds.ModifyNode(nodeID, pathEntry.conduitID, 0)
+		if currentNode.conduitID ~= pathData.conduitID then
+			C_Soulbinds.ModifyNode(nodeID, pathData.conduitID, 0)
 		end
 
-		-- If the node saves was selected, select it too
-		if pathEntry.state == 3 then
+		if pathData.state == 3 then
 			C_Soulbinds.SelectNode(nodeID)
 		end
 	end
 
-	-- Activate the Soulbind if not current
-	if C_Soulbinds.GetActiveSoulbindID() ~= soulbindID then
-		SoulbindViewer:OnActivateSoulbindClicked()
+	if C_Soulbinds.HasAnyPendingConduits() then
+		SoulbindViewer:OnCommitConduitsClicked()
 	end
 
-	-- THIS AUTO ACCEPTS, PROBABLY A BAD IDEA TO USE IT...
-	-- C_Soulbinds.CommitPendingConduitsInSoulbind(soulbindID)
-
-	-- Prompt if there's any changes as a result of the new path/conduits
-	--if SCMdb.settings.attemptApply and C_Soulbinds.HasAnyPendingConduits() then
-		--SoulbindViewer:OnCommitConduitsClicked()
-   -- end
-	
+	print((L["Saved Path %s has been loaded."]):format(pathData.name))
 end
 
 
+function addon:MacroLoad(pathName)
+	local isfound = false
+	for i, data in ipairs(addon.savedPathdb.char.paths) do
+		if data.name == pathName then
+			isfound = i
+			break
+		end
+	end
+
+	if not isfound then return false end
+	addon:LoadPath(isfound, true)
+end
+
 
 --Saved Path Popup Menu
-
 function addon:ShowPopup(popup, index)
 	StaticPopupSpecial_Show(CovenantForge_SavedPathEditFrame)
 	local data = addon.savedPathdb.char.paths[index]
@@ -282,7 +263,7 @@ function CovenantForge_SavedPathEditFrameMixin:OnAccept()
 		addon:UpdateSavedPathsList()
 		addon:ClosePopups()
 	else
-		print("duplicaet name")
+		print(L["Name Already Exists"])
 	end
 end
 
@@ -309,13 +290,16 @@ end
 
 function addon:UpdateSavedPathsList()
 	if not addon.savedPathdb.char.paths or not addon.scrollcontainer then return end
+
 	local scrollcontainer = addon.scrollcontainer
 	scrollcontainer:ReleaseChildren()
+	scrollcontainer:SetPoint("TOPLEFT", addon.PathStorageFrame,"TOPLEFT", 0, -55)
 	scroll = AceGUI:Create("ScrollFrame")
 	scroll:SetLayout("Flow") -- probably?
 	scrollcontainer:AddChild(scroll)
 
 	for i, data in ipairs(addon.savedPathdb.char.paths) do
+		local soulbindData = C_Soulbinds.GetSoulbindData(data.soulbindID)
 		local container = AceGUI:Create("SimpleGroup") 
 		container:SetLayout("Fill")
 
@@ -325,7 +309,7 @@ function addon:UpdateSavedPathsList()
 		scroll:AddChild(topHeading)
 		--container:AddChild(topHeading)
 		local InteractiveLabel = AceGUI:Create("InteractiveLabel")
-		InteractiveLabel:SetText(data.name.."\n \n  \n  \n  \n ")
+		InteractiveLabel:SetText(soulbindData.name..": "..data.name.."\n \n  \n  \n  \n ")
 		InteractiveLabel:SetJustifyH("TOP")
 		InteractiveLabel.label:SetPoint("TOP", container.frame, "TOP", 0 ,10)
 		InteractiveLabel.label:SetHeight(InteractiveLabel.label:GetStringHeight())
@@ -338,7 +322,7 @@ function addon:UpdateSavedPathsList()
 		InteractiveLabel.image:SetAlpha(0)
 		InteractiveLabel:SetRelativeWidth(1)
 		--InteractiveLabel:SetPoint("CENTER")
-		InteractiveLabel:SetCallback("OnClick", function() addon:SelectPath(i) end)
+		InteractiveLabel:SetCallback("OnClick", function() addon:LoadPath(i) end)
 		InteractiveLabel:SetCallback("OnEnter", function() addon:PathTooltip(InteractiveLabel, i) end)
 		InteractiveLabel:SetCallback("OnLeave", function() GameTooltip:Hide() end)
 
@@ -389,7 +373,7 @@ function addon:UpdateSavedPathsList()
 			end
 			nodeIcon:SetImageSize(25,25)
 			nodeIcon:SetWidth(26)
-			nodeIcon:SetCallback("OnClick", function() addon:SelectPath(i) end)
+			nodeIcon:SetCallback("OnClick", function() addon:LoadPath(i) end)
 			nodeIcon:SetCallback("OnEnter", function() addon:ShowNodeTooltip(nodeIcon, data) end)
 			nodeIcon:SetCallback("OnLeave", function() GameTooltip:Hide() end)
 			container:AddChild(nodeIcon)
@@ -400,3 +384,5 @@ function addon:UpdateSavedPathsList()
 		scroll:AddChild(container)
 	end
 end
+
+

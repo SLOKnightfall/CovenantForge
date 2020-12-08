@@ -90,7 +90,7 @@
 				<Texture parentKey="Background" atlas="ui-frame-kyrianchoice-cardparchment" setAllPoints="true" />
 			</Layer>
 			<Layer level="OVERLAY">
-				<FontString parentKey="Title" inherits="GameFontNormal" text="Title">
+				<FontString parentKey="Title" inherits="GameFontNormalLarge" text="Title">
 					<Anchors>
 						<Anchor point="CENTER" x="2" y="-12" relativePoint="TOP"/>
 					</Anchors>

@@ -195,7 +195,7 @@ function addon:OnEnable()
 	addon:BuildWeightData()
 	addon:GetClassConduits()
 	local spec = GetSpecialization()
-	viewed_spec = GetSpecializationInfo(spec)
+	addon.viewed_spec = GetSpecializationInfo(spec)
 
 	self:SecureHookScript(GameTooltip, "OnTooltipSetItem", "GenerateToolip")
 	self:SecureHookScript(ItemRefTooltip, "OnTooltipSetItem", "GenerateToolip")
@@ -262,7 +262,7 @@ function addon.Init:CreateSoulbindFrames()
 	local spec = GetSpecialization()
 	local specID = GetSpecializationInfo(spec)
 	dropdown:SetValue(specID)
-	dropdown:SetCallback("OnValueChanged", function(self,event, key) viewed_spec = key; addon:Update() end)
+	dropdown:SetCallback("OnValueChanged", function(self,event, key) addon.viewed_spec = key; addon:Update() end)
 
 	local f = CreateFrame("Frame", "CovForge_WeightTotal", SoulbindViewer, "CovenantForge_WeightTotalTemplate")
 	addon.CovForge_WeightTotalFrame = f
@@ -368,11 +368,9 @@ function CovenantForgeSavedTab_OnClick(self)
 end
 
 
-
-
-
 function addon:UpdateConduitList()
 	scrollcontainer:ReleaseChildren()
+	scrollcontainer:SetPoint("TOPLEFT", addon.PathStorageFrame,"TOPLEFT", 0, -25)
 
 	scroll = AceGUI:Create("ScrollFrame")
 	scroll:SetLayout("Flow") -- probably?
@@ -406,7 +404,7 @@ function addon:UpdateConduitList()
 
 		for i, data in pairs(typedata) do
 			for _,spec in ipairs(data[4]) do
-				if viewed_spec == spec then 
+				if addon.viewed_spec == spec then 
 					local name = data[1]
 					local type = Soulbinds.GetConduitName(data[3])
 					local spellID = data[2]
@@ -420,7 +418,7 @@ function addon:UpdateConduitList()
 							break
 						end
 					end
-					local weight = addon:GetWeightData(i, viewed_spec)
+					local weight = addon:GetWeightData(i, addon.viewed_spec)
 					if weight then
 						if weight > 0 then
 							if addon.Profile.ShowAsPercent then 
@@ -450,8 +448,6 @@ function addon:UpdateConduitList()
 		end
 	end
 end
-
-
 
 
 --Updates Weight Values & Names
@@ -505,7 +501,7 @@ function addon:Update()
 				local name = GetSpellInfo(spellID)
 				local rank = conduit:GetConduitRank()
 				local itemLevel = C_Soulbinds.GetConduitItemLevel(conduitID, rank)
-				weight = addon:GetWeightData(conduitID, viewed_spec)
+				weight = addon:GetWeightData(conduitID, addon.viewed_spec)
 				f.Name:SetText(name)
 			else
 				f.Name:SetText("")
@@ -514,7 +510,7 @@ function addon:Update()
 			local spellID =  nodeFrame.spell:GetSpellID()
 			local name = GetSpellInfo(spellID) or ""
 			f.Name:SetText(name)
-			weight = addon:GetTalentWeight(spellID, viewed_spec)
+			weight = addon:GetTalentWeight(spellID, addon.viewed_spec)
 		end
 
 		if weight and weight ~= 0 then 
@@ -544,7 +540,7 @@ function addon:Update()
 			local conduitRank = conduitButton.conduitData.conduitRank
 
 			local ilevelText = L["%s (Rank %d)"]:format(conduitItemLevel,conduitRank )
-			local weight = addon:GetWeightData(conduitID, viewed_spec, itemLevel)
+			local weight = addon:GetWeightData(conduitID, addon.viewed_spec, itemLevel)
 			local percent = addon:GetWeightPercent(weight)
 
 			if weight ~=0 then 
@@ -688,6 +684,8 @@ function addon:GetClassConduits()
 	end
 end
 
+
+addon:RegisterChatCommand("CFLoad", function(arg) addon:MacroLoad(arg) end)
 
 
 

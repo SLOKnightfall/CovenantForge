@@ -17,7 +17,6 @@ local Profile
 local playerNme
 local realmName
 local playerClass, classID,_
-local viewed_spec
 local conduitList = {}
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
@@ -128,8 +127,7 @@ function addon:GetSoulbindWeight(soulbindID)
 		local weight
 		local maxTable
 		local selectedTable
-		local unlockedTable
-		
+		local unlockedTable		
 
 		local parentNode = parentNodeTable[data.ID]
 		local parentData = parentNodeData[parentNode]
@@ -137,20 +135,20 @@ function addon:GetSoulbindWeight(soulbindID)
 		
 		
 		if conduitID == 0 then
-			weight = addon:GetTalentWeight(spellID, viewed_spec)
+			weight = addon:GetTalentWeight(spellID, addon.viewed_spec)
 
 			maxTable = maxNodeWeights
 		else
-			weight = addon:GetWeightData(conduitID, viewed_spec)
+			weight = addon:GetWeightData(conduitID, addon.viewed_spec)
 
 			maxTable = maxConduitWeights
 		end
 
 		if parentData and parentData.conduitID == 0 then
-				parentWeight = addon:GetTalentWeight(parentData.spellID, viewed_spec)
+				parentWeight = addon:GetTalentWeight(parentData.spellID, addon.viewed_spec)
 				parentRow[parentData.row] = true
 		elseif parentData then 
-			parentWeight = addon:GetWeightData(parentData.conduitID, viewed_spec)
+			parentWeight = addon:GetWeightData(parentData.conduitID, addon.viewed_spec)
 			parentRow[parentData.row] = true
 		end
 
@@ -262,7 +260,7 @@ function addon:UpdateWeightList()
 					break
 				end
 			end
-			local weight = addon:GetWeightData(i, viewed_spec)
+			local weight = addon:GetWeightData(i, addon.viewed_spec)
 			if weight then
 				if weight > 0 then
 					if addon.Profile.ShowAsPercent then 

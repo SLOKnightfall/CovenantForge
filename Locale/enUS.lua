@@ -34,3 +34,8 @@ L["%s (Rank %d)"] = true
 COVENATNFORGE_UPDATE_PATH = "Update Path"
 COVENATNFORGE_DELETE_PATH = "Delete Path"
 COVENATNFORGE_CREATE_PATH = "Create Path"
+
+--Saved Paths
+L["Name Already Exists"] = true
+L["Requires the Forge of Bonds to modify."] = true
+L["Saved Path %s has been loaded."] = true
