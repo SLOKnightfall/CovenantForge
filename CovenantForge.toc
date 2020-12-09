@@ -4,6 +4,7 @@
 ## Game Version: 9.0.2
 ## Author: SLOKnightfall
 ## Notes: 
+## OptionalDeps: ElvUI, 
 ## SavedVariables: CovenantForgeDB, CovenantForgeSavedPaths
 
 #Libraries

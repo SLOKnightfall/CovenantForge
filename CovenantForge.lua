@@ -322,6 +322,10 @@ function addon.Init:CreateSoulbindFrames()
 	f:SetScript("OnShow", function() addon:UpdateSavedPathsList() end)
 
 	addon:UpdateSavedPathsList()
+	if addon.ElvUIDelay then 
+		addon.ElvUIDelay()
+		ElvUIDelay = nil
+	end
 end
 
 local currentTab

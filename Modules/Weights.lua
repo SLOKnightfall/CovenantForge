@@ -360,7 +360,7 @@ function addon:UpdateWeightList()
 					local editbox = AceGUI:Create("EditBox")
 					editbox:SetLabel(data)
 					editbox:SetWidth(50)
-					editbox:SetHeight(30)
+					editbox:SetHeight(40)
 					editbox.button:ClearAllPoints()
 					editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
 
@@ -374,10 +374,10 @@ function addon:UpdateWeightList()
 				end
 
 			end
-					local topHeading = AceGUI:Create("Heading") 
-		topHeading:SetRelativeWidth(1)
-		topHeading:SetHeight(5)
-		scroll:AddChild(topHeading)
+			local topHeading = AceGUI:Create("Heading") 
+			topHeading:SetRelativeWidth(1)
+			topHeading:SetHeight(5)
+			scroll:AddChild(topHeading)
 			scroll:AddChild(container)
 		end
 	end
@@ -437,9 +437,9 @@ function addon:UpdateWeightList()
 				local editbox = AceGUI:Create("EditBox")
 				--editbox:SetLabel(data)
 				editbox:SetWidth(50)
-				editbox:SetHeight(30)
-									editbox.button:ClearAllPoints()
-					editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
+				editbox:SetHeight(40)
+				editbox.button:ClearAllPoints()
+				editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
 
 				if ileveldata then 
 
