@@ -343,7 +343,6 @@ function addon:UpdateWeightList()
 		end)
 
 
-
 	local icon = AceGUI:Create("Icon") 
 	icon:SetImage("Interface/Buttons/UI-OptionsButton")
 	icon:SetHeight(20)

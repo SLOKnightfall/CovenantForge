@@ -16,7 +16,6 @@ externals:
     Libs/AceEvent-3.0: https://repos.wowace.com/wow/ace3/trunk/AceEvent-3.0
     Libs/AceHook-3.0: https://repos.wowace.com/wow/ace3/trunk/AceHook-3.0
     Libs/AceLocale-3.0: https://repos.wowace.com/wow/ace3/trunk/AceLocale-3.0
-    Libs/LibDropdown-1.0: https://github.com/neotron/WoW-LibDropDown/tree/master/LibDropdown-1.0
 
     
 enable-nolib-creation: no
