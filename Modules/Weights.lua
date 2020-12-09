@@ -64,13 +64,20 @@ local function GetSoulbindPowers()
 	addon.powers = powers
 end
 
+
 local function SelectProfile(index)
+	if not WeightProfiles[index] then  SelectProfile(1) end
 	Weights = WeightProfiles[index].weights
+	addon.savedPathdb.char.selectedProfile = index
 	addon:UpdateWeightList()
 end
 
 
+local defaultindex = 0
 function addon:BuildWeightData()
+	wipe(WeightProfiles)
+	wipe(ProfileTable)
+	defaultindex = 0
 	GetSoulbindPowers()
 	local spec = GetSpecialization()
 	local specID, specName = GetSpecializationInfo(spec)
@@ -97,11 +104,18 @@ function addon:BuildWeightData()
 			end
 		end
 		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= Weights})
+		table.insert(ProfileTable, L[profile])
+		defaultindex = defaultindex + 1
+	end
+
+	local profileList = self.weightdb.class.weights or {}
+	for profile, weightData in pairs(profileList) do
+		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= weightData})
 		table.insert(ProfileTable, profile)
 	end
+
 	local selectedProfile = addon.savedPathdb.char.selectedProfile
 	SelectProfile(selectedProfile)
-
 end
 
 
@@ -115,7 +129,7 @@ function addon:GetConduitWeight(specID, conduitID)
 
 	if Weights[specID][soulbindName] then 
 		local weight = Weights[specID][soulbindName][conduitItemLevel]
-		return weight
+		return weight or 0
 	end
 
 	return 0
@@ -129,7 +143,7 @@ function addon:GetTalentWeight(specID, spellID)
 	local name = addon.Soulbinds[spellID]
 	if Weights[specID][name] then 
 		local weight = Weights[specID][name][1]
-		return weight
+		return weight or 0
 	end
 
 	return 0
@@ -184,10 +198,10 @@ function addon:GetSoulbindWeight(soulbindID)
 		end
 
 		if parentData and parentData.conduitID == 0 then
-				parentWeight = addon:GetTalentWeight(addon.viewed_spec, parentData.spellID)
+				parentWeight = addon:GetTalentWeight(addon.viewed_spec, parentData.spellID) or 0
 				parentRow[parentData.row] = true
 		elseif parentData then 
-			parentWeight = addon:GetConduitWeight(addon.viewed_spec, parentData.conduitID)
+			parentWeight = addon:GetConduitWeight(addon.viewed_spec, parentData.conduitID) or 0
 			parentRow[parentData.row] = true
 		end
 
@@ -239,6 +253,7 @@ end
 
 
 function addon:GetWeightPercent(weight)
+	if not weight then return 0 end
 	local percent = weight/WEIGHT_BASE
 
 	 --return percent>=0 and math.floor(percent+0.5) or math.ceil(percent-0.5)
@@ -246,8 +261,55 @@ function addon:GetWeightPercent(weight)
 end
 
 
-local function updateWeight(index, value)
+local function CreateNewWeightProfile(name)
+	local profileList = addon.weightdb.class.weights
+	local _, _, classID = UnitClass("player")
+	local covenantID = C_Covenants.GetActiveCovenantID();
+	local classSpecs = CLASS_SPECS[classID]
+	if not profileList[name] then 
+		profileList[name] = {}
+		for _, specID in ipairs(classSpecs) do
+			profileList[name][specID] = {{},{},{}}
+		end
+	end
+	addon:BuildWeightData()
+	addon:UpdateWeightList()
 end
+
+
+local function CopyWeightProfile(name)
+	local profileList = addon.weightdb.class.weights
+	local selectedProfile = addon.savedPathdb.char.selectedProfile
+	local selectedName = WeightProfiles[selectedProfile].name
+	local weights = CopyTable(Weights)
+	profileList[name] = weights
+
+	table.insert(WeightProfiles, {["name"] = name, ["weights"]= Weights})
+	table.insert(ProfileTable, name)
+	addon:UpdateWeightList()
+end
+
+
+local function DeleteWeightProfile(name)
+	local profileList = addon.weightdb.class.weights
+	profileList[name] = nil
+	SelectProfile(1)
+	addon:BuildWeightData()
+	addon:UpdateWeightList()
+	addon.Update()
+end
+
+local function UpdateWeightData(name, ilevel, value)
+--Weights[specID][name]
+	Weights[tonumber(addon.viewed_spec)] = Weights[tonumber(addon.viewed_spec)] or {}
+	Weights[tonumber(addon.viewed_spec)][name] = Weights[tonumber(addon.viewed_spec)][name] or {}
+	Weights[tonumber(addon.viewed_spec)][name][tonumber(ilevel)] = tonumber(value)
+	addon:UpdateWeightList()
+	addon.Update()
+end
+
+
+
 
 
 local filterValue = 1
@@ -270,20 +332,34 @@ function addon:UpdateWeightList()
 
 	local dropdown = AceGUI:Create("Dropdown")
 	dropdown:SetFullWidth(false)
-	dropdown:SetWidth(100)
+	dropdown:SetWidth(200)
 	scroll:AddChild(dropdown)
 	dropdown:SetList(ProfileTable)
 	dropdown:SetValue(selectedProfile)
+	dropdown:SetCallback("OnValueChanged", 
+		function(self,event, key) 
+			SelectProfile(key)
+			addon:Update()
+		end)
+
+
+
+	local icon = AceGUI:Create("Icon") 
+	icon:SetImage("Interface/Buttons/UI-OptionsButton")
+	icon:SetHeight(20)
+	icon:SetWidth(25)
+	icon:SetImageSize(20,20)
+	icon:SetCallback("OnClick", function() addon:OpenBarDropDown(icon.frame) end)
+
+	scroll:AddChild(icon)
 
 	dropdown = AceGUI:Create("Dropdown")
 	dropdown:SetFullWidth(false)
-	dropdown:SetWidth(100)
-	scroll:AddChild(dropdown)
+	dropdown:SetWidth(225)
 	dropdown:SetList(filter)
 	dropdown:SetValue(filterValue)
 	dropdown:SetCallback("OnValueChanged", 
 		function(self,event, key) 
-			--print("SDF")
 			filterValue = key; 
 			if key == 1 then 
 				filteredList = addon.conduitList
@@ -292,8 +368,7 @@ function addon:UpdateWeightList()
 			end
 			addon:UpdateWeightList()
 		end)
-
-	--local scrollframe = addon.ScrollFrame
+	scroll:AddChild(dropdown)
 
 	for i, typedata in pairs(filteredList) do
 		local index = i
@@ -361,18 +436,19 @@ function addon:UpdateWeightList()
 					editbox:SetLabel(data)
 					editbox:SetWidth(50)
 					editbox:SetHeight(40)
+					editbox.editbox:SetTextInsets(0,-5, 0, 0)
 					editbox.button:ClearAllPoints()
 					editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
+					editbox:SetDisabled(addon.savedPathdb.char.selectedProfile <= defaultindex)
+					editbox:SetCallback("OnEnterPressed", function(self,event, key) 
+						UpdateWeightData(name, data, key)
+					end)
 
 					if ileveldata then 
-
-
-					editbox:SetText(ileveldata[data] or 0)
-					--InteractiveLabel:SetCallback("OnClick", function() addon:LoadPath(i) end)
+						editbox:SetText(ileveldata[data] or 0)
 					end
 					container:AddChild(editbox)
 				end
-
 			end
 			local topHeading = AceGUI:Create("Heading") 
 			topHeading:SetRelativeWidth(1)
@@ -408,13 +484,6 @@ function addon:UpdateWeightList()
 				local desc = GetSpellDescription(spellID)
 				local _,_, icon = GetSpellInfo(spellID)
 				local titleColor = ORANGE_FONT_COLOR_CODE
-				--for i, data in ipairs(collectionData) do
-					--local c_spellID = C_Soulbinds.GetConduitSpellID(data.conduitID, data.conduitRank)
-					--if c_spellID == spellID then 
-					--	titleColor = GREEN_FONT_COLOR_CODE
-					--	break
-					--end
-					--	end
 				local container = AceGUI:Create("SimpleGroup") 
 				container:SetLayout("Flow")
 				container:SetFullWidth(true)
@@ -440,12 +509,10 @@ function addon:UpdateWeightList()
 				editbox:SetHeight(40)
 				editbox.button:ClearAllPoints()
 				editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
+				editbox:SetDisabled(addon.savedPathdb.char.selectedProfile <= defaultindex)
 
 				if ileveldata then 
-
-
 					editbox:SetText(ileveldata[1] or 0)
-						--InteractiveLabel:SetCallback("OnClick", function() addon:LoadPath(i) end)
 				end
 				container:AddChild(editbox)
 		
@@ -460,7 +527,107 @@ function addon:UpdateWeightList()
 end
 
 
+local function Faded(self)
+	self:Release()
+end
+
+local function FadeMenu(self)
+	local fadeInfo = {}
+	fadeInfo.mode = "OUT"
+	fadeInfo.timeToFade = 0.1
+	fadeInfo.finishedFunc = Faded
+	fadeInfo.finishedArg1 = self
+	UIFrameFade(self, fadeInfo)
+end
+
+local LD = LibStub("LibDropdown-1.0")
+local action
+function addon:OpenBarDropDown(myframe, index)
+	-- adopted from BulkMail
+	-- release if if already shown
+	local barmenuframe
+	barmenuframe = barmenuframe and barmenuframe:Release()
+	local baropts = {
+		type = 'group',
+		args = {
+			details = {
+				order = 10,
+				name = L["Create New Blank Profile"],
+				type = "execute",
+				func = function(name)
+						action = CreateNewWeightProfile
+						if (not StaticPopup_Visible("COVENANTFORGE_UPDATEWEIGHTPOPUP")) then
+							addon:ShowPopup("COVENANTFORGE_UPDATEWEIGHTPOPUP", i)
+						end
+						FadeMenu(barmenuframe)
+
+				end,
+			},
+			graph = {
+				order = 20,
+				name = L["Copy Current Profile"],
+				type = "execute",
+				func = function(name)
+					action = CopyWeightProfile
+					if (not StaticPopup_Visible("COVENANTFORGE_UPDATEWEIGHTPOPUP")) then
+						addon:ShowPopup("COVENANTFORGE_UPDATEWEIGHTPOPUP", i)
+					end
+						FadeMenu(barmenuframe)
+				end,
+			},
+			addgraph = {
+				order = 30,
+				name = L["Delete Current Profile"],
+				type = "execute",
+				func = function(name)
+					DeleteWeightProfile(ProfileTable[addon.savedPathdb.char.selectedProfile])
+					FadeMenu(barmenuframe)
+
+				end,
+				disabled = function() return addon.savedPathdb.char.selectedProfile <= defaultindex end
+				--me.AddCombatantToGraphWrapper,
+			},
+		}
+	}
+
+	barmenuframe = barmenuframe or LD:OpenAce3Menu(baropts)
+	barmenuframe:SetClampedToScreen(true)
+	barmenuframe:SetAlpha(1.0)
+	barmenuframe:Show()
+
+	local leftPos = myframe:GetLeft() -- Elsia: Side code adapted from Mirror
+	local rightPos = myframe:GetRight()
+	local side
+	local oside
+	if not rightPos then
+		rightPos = 0
+	end
+	if not leftPos then
+		leftPos = 0
+	end
+
+	local rightDist = GetScreenWidth() - rightPos
+
+	if leftPos and rightDist < leftPos then
+		side = "TOPLEFT"
+		oside = "TOPRIGHT"
+	else
+		side = "TOPRIGHT"
+		oside = "TOPLEFT"
+	end
+
+	barmenuframe:ClearAllPoints()
+	barmenuframe:SetPoint(oside, myframe, side, 0, 0)
+	--barmenuframe:SetFrameLevel(myframe:GetFrameLevel() + 9)
+end
 
 
---C_Soulbinds.GetSoulbindData(soulbindID)
---C_Covenants.GetCovenantData(3).soulbindIDs
+CovenantForge_WeightsEditFrameMixin = {}
+
+function CovenantForge_WeightsEditFrameMixin:OnAccept()
+local text = self.EditBox:GetText()
+--print(text)
+action(text)
+action = nil
+addon:ClosePopups()
+end

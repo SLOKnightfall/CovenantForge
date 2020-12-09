@@ -64,8 +64,6 @@ function optionHandler:Getter(info)
 end
 
 
-
-
 local options = {
 	name = "CovenantForge",
 	handler = optionHandler,
@@ -134,7 +132,6 @@ local defaults = {
 	profile = {
 				['*'] = true,
 				disableFX = false,
-
 			},
 }
 
@@ -145,14 +142,22 @@ local pathDefaults = {
 	},
 }
 
+local weightDefaults = {
+	class ={
+		weights = {},
+	},
+}
 
 ---Ace based addon initilization
 function addon:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("CovenantForgeDB", defaults, true)
-
 	self.savedPathdb = LibStub("AceDB-3.0"):New("CovenantForgeSavedPaths", pathDefaults, true)
+	self.weightdb = LibStub("AceDB-3.0"):New("CovenantForgeWeights", weightDefaults, true)
+
 	addon.Profile = self.db.profile
 	options.args.profiles  = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
+	options.args.weights  = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.weightdb)
+	options.args.weights.name = "Weights"
 	LibStub("AceConfigRegistry-3.0"):ValidateOptionsTable(options, addonName)
 	LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options)
 	--options.args.path_profiles  = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.savedPathdb)
@@ -384,7 +389,7 @@ function addon:UpdateConduitList()
 
 	dropdown = AceGUI:Create("Dropdown")
 	dropdown:SetFullWidth(false)
-	dropdown:SetWidth(100)
+	dropdown:SetWidth(200)
 	scroll:AddChild(dropdown)
 	dropdown:SetList(filter)
 	dropdown:SetValue(filterValue)

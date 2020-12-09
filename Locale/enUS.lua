@@ -22,8 +22,8 @@ L["Avaiable Conduits"]= true
 L["Saved Paths"] = true
 
 
-L["PR"] = "Pre Raid"
-L["T26"] = "Tier 26"
+L["PR"] = "HERODAMAGE - Pre Raid"
+L["T26"] = "HERODAMAGE -Tier 26"
 --L["Base: %s/%s\nCurrent: %s/%s\nMax Total: %s"] = true
 L["Base: %s/%s\nCurrent: %s/%s"] = true
 L["%s - Rank:%s |cffffffff(%s)|r"] = true

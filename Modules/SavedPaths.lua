@@ -224,15 +224,20 @@ end
 
 --Saved Path Popup Menu
 function addon:ShowPopup(popup, index)
-	StaticPopupSpecial_Show(CovenantForge_SavedPathEditFrame)
-	local data = addon.savedPathdb.char.paths[index]
-	CovenantForge_SavedPathEditFrame.EditBox:SetText(data.name)
-	CovenantForge_SavedPathEditFrame.pathIndex = index
+	if popup == "COVENANTFORGE_UPDATEPATHPOPUP" then 
+		StaticPopupSpecial_Show(CovenantForge_SavedPathEditFrame)
+		local data = addon.savedPathdb.char.paths[index]
+		CovenantForge_SavedPathEditFrame.EditBox:SetText(data.name)
+		CovenantForge_SavedPathEditFrame.pathIndex = index
+	elseif popup == "COVENANTFORGE_UPDATEWEIGHTPOPUP" then 
+		StaticPopupSpecial_Show(CovenantForge_WeightsEditFrame)
+	end
 end
 
 
 function addon:ClosePopups()
 	StaticPopupSpecial_Hide(CovenantForge_SavedPathEditFrame)
+	StaticPopupSpecial_Hide(CovenantForge_WeightsEditFrame)
 end
 
 
@@ -334,8 +339,8 @@ function addon:UpdateSavedPathsList()
 		UpdateButton:SetWidth(18)
 
 		UpdateButton:SetCallback("OnClick", function()
-				if (not StaticPopup_Visible("COVENANTFORGE_UPDATEPOPUP")) then
-				addon:ShowPopup("COVENANTFORGE_UPDATEPOPUP", i)
+				if (not StaticPopup_Visible("COVENANTFORGE_UPDATEPATHPOPUP")) then
+				addon:ShowPopup("COVENANTFORGE_UPDATEPATHPOPUP", i)
 				end  end)
 		UpdateButton:SetCallback("OnEnter", function() GameTooltip:SetOwner(UpdateButton.frame, "ANCHOR_RIGHT"); GameTooltip:AddLine(L["Options"]); GameTooltip:Show() end)
 		UpdateButton:SetCallback("OnLeave", function() GameTooltip:Hide() end)

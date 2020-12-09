@@ -303,4 +303,107 @@
 			</OnHide>
 		</Scripts>
 	</Frame>
+
+	<Frame name="CovenantForge_WeightsEditFrame" parent="UIParent" hidden="true" frameStrata="DIALOG"  mixin="CovenantForge_WeightsEditFrameMixin">
+		<Size x="320" y="140"/>
+		<Anchors>
+			<Anchor point="CENTER"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Title" inherits="GameFontHighlight" text="Profile Name">
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-20"/>
+					</Anchors>
+				</FontString>
+				<Texture parentKey="Separator">
+					<Size x="276" y="1"/>
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-127"/>
+					</Anchors>
+					<Color r="1" g="1" b="1" a="0.14"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="Border" inherits="DialogBorderTemplate"/>
+			<EditBox parentKey="EditBox" historyLines="1" letters="31">
+				<Size x="260" y="32"/>
+				<Anchors>
+					<Anchor point="TOP" x="0" y="-40"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture parentKey="LeftTexture" file="Interface\ChatFrame\UI-ChatInputBorder-Left2">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="LEFT" x="-10" y="0"/>
+							</Anchors>
+						</Texture>
+						<Texture parentKey="RightTexture" file="Interface\ChatFrame\UI-ChatInputBorder-Right2">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="RIGHT" x="10" y="0"/>
+							</Anchors>
+						</Texture>
+						<Texture parentKey="MiddleTexture" file="Interface\ChatFrame\UI-ChatInputBorder-Mid2" horizTile="true">
+							<Size x="0" y="32"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.LeftTexture" relativePoint="TOPRIGHT"/>
+								<Anchor point="TOPRIGHT" relativeKey="$parent.RightTexture" relativePoint="TOPLEFT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnEnterPressed>
+						self:GetParent():OnAccept();
+					</OnEnterPressed>
+					<OnEscapePressed>
+						StaticPopupSpecial_Hide(self:GetParent());
+					</OnEscapePressed>
+					<OnTextChanged>
+						if ( self:GetText() == "" ) then
+							self:GetParent().AcceptButton:Disable();
+						else
+							self:GetParent().AcceptButton:Enable();
+						end
+					</OnTextChanged>
+				</Scripts>
+				<FontString inherits="ChatFontNormal"/>
+			</EditBox>
+			<Button parentKey="AcceptButton" inherits="UIPanelButtonTemplate" text="ACCEPT">
+				<Size x="120" y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="33" y="-80"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						self:GetParent():OnAccept();
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button parentKey="CancelButton" inherits="UIPanelButtonTemplate" text="CANCEL">
+				<Size x="120" y="22"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-33" y="-80"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						StaticPopupSpecial_Hide(self:GetParent());
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self.exclusive = true;
+				self.hideOnEscape = true;
+			</OnLoad>
+			<OnHide>
+				PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE);
+			</OnHide>
+		</Scripts>
+	</Frame>
 </Ui>
