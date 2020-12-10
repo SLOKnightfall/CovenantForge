@@ -56,6 +56,9 @@ local WEIGHT_BASE = 37.75
 local optionHandler = {}
 function optionHandler:Setter(info, value)
 	addon.Profile[info[#info]] = value
+	if SoulbindViewer:IsShown() then
+		addon:Update()
+	end
 end
 
 
@@ -618,7 +621,7 @@ function addon:Update()
 		if curentsoulbindID == soulbindID and addon.Profile.ShowWeights then 
 			addon.CovForge_WeightTotalFrame.Weight:Show()
 			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Current: %s/%s\nMax Possible: %s"]:format(selectedTotal, unlockedTotal, nodeMax + conduitMax))
-		else
+		elseif curentsoulbindID == soulbindID and not addon.Profile.ShowWeights then 
 			addon.CovForge_WeightTotalFrame.Weight:Hide()
 		end
 	end
