@@ -236,14 +236,14 @@ function addon:OnEnable()
 end
 
 local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,270,69},{102,103,104,105},{577,578}}
-
+local currentTab = 1
 local scroll
 local scrollcontainer
 function addon.Init:CreateSoulbindFrames()
 	local frame = CreateFrame("Frame", "CovForge_events", SoulbindViewer)
 	
 	frame:SetScript("OnShow", function() FrameUtil.RegisterFrameForEvents(frame, SoulbindConduitNodeEvents) end)
-	frame:SetScript("OnHide", function() FrameUtil.UnregisterFrameForEvents(frame, SoulbindConduitNodeEvents) end)
+	frame:SetScript("OnHide", function() FrameUtil.UnregisterFrameForEvents(frame, SoulbindConduitNodeEvents ); currentTab = 1 end)
 	frame:SetScript("OnEvent", addon.Update)
 	--frame:Show()
 	FrameUtil.RegisterFrameForEvents(frame, SoulbindConduitNodeEvents);
@@ -383,7 +383,7 @@ function addon.Init:CreateSoulbindFrames()
 	frame:AddChild(icon)
 end
 
-local currentTab = 4
+
 function CovenantForgeSavedTab_OnClick(self)
 	local currentTab = self.tabIndex
 	for i, tab in ipairs(addon.PathStorageFrame.TabList) do
@@ -414,7 +414,6 @@ function CovenantForgeSavedTab_OnClick(self)
 		addon.PathStorageFrame.CreateButton:Hide()
 		addon.PathStorageFrame.Title:SetText(L["Weights"])
 		addon:UpdateWeightList()
-
 	end
 	
 end
@@ -717,7 +716,10 @@ function addon:Update()
 	end
 
 	addon.CovForge_WeightTotalFrame:SetShown(not SoulbindViewer.CommitConduitsButton:IsShown())
-	
+
+	if addon.PathStorageFrame and addon.PathStorageFrame:IsShown() then 
+		CovenantForgeSavedTab_OnClick({["tabIndex"] = currentTab})
+	end
 	if addon.PathStorageFrame and addon.PathStorageFrame:IsShown() and currentTab == 2 then
 		addon:UpdateConduitList()
 	end
@@ -725,6 +727,7 @@ function addon:Update()
 	if addon.PathStorageFrame and addon.PathStorageFrame:IsShown() and currentTab == 3 then
 		addon:UpdateWeightList()
 	end
+
 end
 
 
