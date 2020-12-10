@@ -501,14 +501,14 @@ function addon:UpdateConduitList()
 					local weight = addon:GetConduitWeight(addon.viewed_spec, i)
 					if weight then
 						if weight > 0 then
-							if addon.Profile.ShowAsPercent then 
-								weight = addon:GetWeightPercent(weight).."%"
-							end
+							--if addon.Profile.ShowAsPercent then 
+								--weight = addon:GetWeightPercent(weight).."%"
+							--end
 							weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
 						elseif weight < 0 then
-							if addon.Profile.ShowAsPercent then 
-								weight = addon:GetWeightPercent(weight).."%"
-							end
+							--if addon.Profile.ShowAsPercent then 
+								--weight = addon:GetWeightPercent(weight).."%"
+							--end
 							weight = RED_FONT_COLOR_CODE.."("..weight..")"
 						else
 							weight = ""
