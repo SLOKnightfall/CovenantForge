@@ -95,23 +95,37 @@ local options = {
 				},
 
 				ShowNodeNames = {
-					order = 3,
+					order = 3.1,
 					name = L["Show Node Ability Names"],
 					type = "toggle",
 					width = "full",
 					arg = "ShowNodeNames",
 				},
+				ShowWeights = {
+					order = 4,
+					name = L["Show Weights"],
+					type = "toggle",
+					width = "full",
+					arg = "ShowWeights",
+				},
+				HideZeroValues = {
+					order = 5,
+					name = L["Hide Weight Values That Are 0"],
+					type = "toggle",
+					width = "full",
+					arg = "ShowWeights",
+				},
 
-				ShowAsPercent = {
+				--[[ShowAsPercent = {
 					order = 4,
 					name = L["Show Weight as Percent"],
 					type = "toggle",
 					width = "full",
 					arg = "ShowAsPercent",
-				},
+				},]]
 
 				disableFX = {
-					order = 5,
+					order = 5.1,
 					name = L["Disable FX"],
 					width = "full",
 					type = "toggle",
@@ -119,7 +133,7 @@ local options = {
 
 				ShowTooltipRank = {
 					order = 6,
-					name = L["Show Conduit Rank on Tooltip"],
+					name = L["Show Conduit Rank On Tooltip"],
 					type = "toggle",
 					width = "full",
 				},
@@ -207,6 +221,15 @@ function addon:OnEnable()
 	self:SecureHookScript(GameTooltip, "OnTooltipSetItem", "GenerateToolip")
 	self:SecureHookScript(ItemRefTooltip, "OnTooltipSetItem", "GenerateToolip")
 	self:SecureHookScript(EmbeddedItemTooltip,"OnTooltipSetItem", "GenerateToolip")
+
+		hooksecurefunc(GameTooltip, "SetQuestItem", function(tooltip)
+		addon:GenerateToolip(tooltip)
+	end)
+
+
+	hooksecurefunc(GameTooltip, "SetQuestLogItem", function(tooltip)
+		addon:GenerateToolip(tooltip)
+	end)
 end
 
 local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,258},{250,251,252},{262,263,264},{62,63,64},{265,266,267},{268,270,69},{102,103,104,105},{577,578}}
@@ -286,31 +309,42 @@ function addon.Init:CreateSoulbindFrames()
 	f:Hide()
 
 	addon.PathStorageFrame.TabList = {}
-	local PathTab = CreateFrame("CheckButton", "$parentTab1", SoulbindViewer, "CovenantForge_TabTemplate", 1)
+	local DefaultsTab = CreateFrame("CheckButton", "$parentTab1", SoulbindViewer, "CovenantForge_TabTemplate", 1)
    -- PathTab:SetSize(50,50)
-	PathTab:SetPoint("TOPRIGHT", SoulbindViewer, "TOPRIGHT", 30, -20)
+	DefaultsTab:SetPoint("TOPRIGHT", SoulbindViewer, "TOPRIGHT", 30, -20)
+	DefaultsTab.tooltip = L["Learned Conduits"]
+	DefaultsTab:Show()
+	DefaultsTab.TabardEmblem:SetTexture("Interface/ICONS/Ability_Monk_EssenceFont")
+	DefaultsTab.tabIndex = 1
+	DefaultsTab:SetChecked(true)
+	table.insert(addon.PathStorageFrame.TabList ,DefaultsTab )
+
+
+	local PathTab = CreateFrame("CheckButton", "$parentTab2", SoulbindViewer, "CovenantForge_TabTemplate", 1)
+   -- PathTab:SetSize(50,50)
+	PathTab:SetPoint("TOPRIGHT", DefaultsTab, "BOTTOMRIGHT", 0, -20)
 	PathTab.tooltip = L["Saved Paths"]
 	PathTab:Show()
 	PathTab.TabardEmblem:SetTexture("Interface/ICONS/Ability_Druid_FocusedGrowth")
-	PathTab.tabIndex = 1
+	PathTab.tabIndex = 2
 	table.insert(addon.PathStorageFrame.TabList,PathTab )
 
-	local ConduitTab = CreateFrame("CheckButton", "$parentTab2", SoulbindViewer, "CovenantForge_TabTemplate", 1)
+	local ConduitTab = CreateFrame("CheckButton", "$parentTab3", SoulbindViewer, "CovenantForge_TabTemplate", 1)
    -- PathTab:SetSize(50,50)
 	ConduitTab:SetPoint("TOPRIGHT", PathTab, "BOTTOMRIGHT", 0, -20)
 	ConduitTab.tooltip = L["Avaiable Conduits"]
 	ConduitTab:Show()
-	ConduitTab.TabardEmblem:SetTexture("Interface/ICONS/Ability_Monk_EssenceFont")
-	ConduitTab.tabIndex = 2
+	ConduitTab.TabardEmblem:SetTexture("Interface/ICONS/70_inscription_steamy_romance_novel_kit")
+	ConduitTab.tabIndex = 3
 	table.insert(addon.PathStorageFrame.TabList,ConduitTab )
 
-	local WeightsTab = CreateFrame("CheckButton", "$parentTab3", SoulbindViewer, "CovenantForge_TabTemplate", 1)
+	local WeightsTab = CreateFrame("CheckButton", "$parentTab4", SoulbindViewer, "CovenantForge_TabTemplate", 1)
    -- PathTab:SetSize(50,50)
 	WeightsTab:SetPoint("TOPRIGHT", ConduitTab, "BOTTOMRIGHT", 0, -20)
 	WeightsTab.tooltip = L["Weights"]
 	WeightsTab:Show()
 	WeightsTab.TabardEmblem:SetTexture("Interface/ICONS/INV_Stone_WeightStone_06.blp")
-	WeightsTab.tabIndex = 3
+	WeightsTab.tabIndex = 4
 	table.insert(addon.PathStorageFrame.TabList,WeightsTab )
 
 	scrollcontainer = AceGUI:Create("SimpleGroup") -- "InlineGroup" is also good
@@ -331,45 +365,55 @@ function addon.Init:CreateSoulbindFrames()
 		addon.ElvUIDelay()
 		ElvUIDelay = nil
 	end
+
+	frame = AceGUI:Create("SimpleGroup")
+	frame.frame:SetParent(SoulbindViewer)
+	frame:SetHeight(25)
+	frame:SetWidth(25)
+	frame:SetPoint("BOTTOMRIGHT",SoulbindViewer.ConduitList,"BOTTOMLEFT", -10, -40)
+	local icon = AceGUI:Create("Icon") 
+	icon:SetImage("Interface/Buttons/UI-OptionsButton")
+	icon:SetHeight(20)
+	icon:SetWidth(25)
+	icon:SetImageSize(20,20)
+	icon:SetCallback("OnClick", function() addon:OpenOptionsMenu() end)
+	frame:AddChild(icon)
 end
 
-local currentTab
+local currentTab = 4
 function CovenantForgeSavedTab_OnClick(self)
+	local currentTab = self.tabIndex
 	for i, tab in ipairs(addon.PathStorageFrame.TabList) do
-	tab:SetChecked(false);
+		tab:SetChecked(currentTab == i)
 	end
 
-	local index = self.tabIndex
-	if currentTab == index then 
+	if currentTab == 1 then
 		addon.PathStorageFrame:Hide()
-			SoulbindViewer.ConduitList:Show()
-
-		self:SetChecked(false)
-		currentTab = nil
-	else
+		SoulbindViewer.ConduitList:Show()
+	elseif currentTab == 2 then
 		addon.PathStorageFrame:Show()
-			SoulbindViewer.ConduitList:Hide()
-
-		self:SetChecked(true)
-		currentTab = index
-	end
-
-	if index == 1 then
+		SoulbindViewer.ConduitList:Hide()
 		addon.PathStorageFrame.EditBox:Show()
 		addon.PathStorageFrame.CreateButton:Show()
 		addon.PathStorageFrame.Title:SetText(L["Saved Paths"])
 		addon:UpdateSavedPathsList()
-	elseif index == 2 then
+	elseif currentTab == 3 then
+		addon.PathStorageFrame:Show()
+		SoulbindViewer.ConduitList:Hide()
 		addon.PathStorageFrame.EditBox:Hide()
 		addon.PathStorageFrame.CreateButton:Hide()
 		addon.PathStorageFrame.Title:SetText(L["Conduits"])
 		addon:UpdateConduitList()
-	elseif index == 3 then
+	elseif currentTab == 4 then
+		addon.PathStorageFrame:Show()
+		SoulbindViewer.ConduitList:Hide()
 		addon.PathStorageFrame.EditBox:Hide()
 		addon.PathStorageFrame.CreateButton:Hide()
 		addon.PathStorageFrame.Title:SetText(L["Weights"])
 		addon:UpdateWeightList()
+
 	end
+	
 end
 
 local filterValue = 1
@@ -560,11 +604,22 @@ function addon:Update()
 
 		local soulbindID = button:GetSoulbindID()
 		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
-		local selectedTotal, unlockedTotal, nodeMax, conduitMax = addon:GetSoulbindWeight(soulbindID)
-		f.soulbindWeight:SetText(selectedTotal .. "("..nodeMax + conduitMax..")" )
 
-		if curentsoulbindID == soulbindID then 
-			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Current: %s/%s\nMax Possible: %s"]:format(selectedTotal, unlockedTotal ,nodeMax + conduitMax))
+		local selectedTotal, unlockedTotal, nodeMax, conduitMax
+		if addon.Profile.ShowWeights then 
+			f.soulbindWeight:Show()
+			selectedTotal, unlockedTotal, nodeMax, conduitMax = addon:GetSoulbindWeight(soulbindID)
+			f.soulbindWeight:SetText(selectedTotal .. "("..nodeMax + conduitMax..")" )
+		else
+			f.soulbindWeight:Hide()
+
+		end
+
+		if curentsoulbindID == soulbindID and addon.Profile.ShowWeights then 
+			addon.CovForge_WeightTotalFrame.Weight:Show()
+			addon.CovForge_WeightTotalFrame.Weight:SetText(L["Current: %s/%s\nMax Possible: %s"]:format(selectedTotal, unlockedTotal, nodeMax + conduitMax))
+		else
+			addon.CovForge_WeightTotalFrame.Weight:Hide()
 		end
 	end
 
@@ -614,12 +669,18 @@ function addon:Update()
 				sign = ""
 			end
 
-			if addon.Profile.ShowAsPercent then 
-				weight = sign..addon:GetWeightPercent(weight).."%"
-			end
+			--if addon.Profile.ShowAsPercent then 
+				--weight = sign..addon:GetWeightPercent(weight).."%"
+			--end
+		elseif weight and weight == 0 and addon.Profile.HideZeroValues then 
+			weight = ""
 		end
-
-		f.Value:SetText(weight or "")
+		if addon.Profile.ShowWeights then
+			f.Value:Show()
+			f.Value:SetText(weight or "")
+		else
+			f.Value:Hide()
+		end
 	end
 
 	for conduitType, conduitData in ipairs(SoulbindViewer.ConduitList:GetLists()) do
@@ -632,20 +693,20 @@ function addon:Update()
 			local weight = addon:GetConduitWeight(addon.viewed_spec, conduitID)
 			local percent = addon:GetWeightPercent(weight)
 
-			if weight ~=0 then 
-				if addon.Profile.ShowAsPercent then 
+			if addon.Profile.ShowWeights and weight ~=0 then 
+				--[[if addon.Profile.ShowAsPercent then 
 					if percent > 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..GREEN_FONT_COLOR_CODE.." (+"..percent.."%)");
 					elseif percent < 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..RED_FONT_COLOR_CODE.." ("..percent.."%)");
 					end
-				else
+				else]]
 					if weight > 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..GREEN_FONT_COLOR_CODE.." (+"..weight..")");
 					elseif weight < 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..RED_FONT_COLOR_CODE.." ("..weight..")");
 					end
-				end
+				--end
 			else 
 				conduitButton.ItemLevel:SetText(ilevelText);
 			end
@@ -703,6 +764,7 @@ function addon:ConduitTooltip_Rank(tooltip, rank, row)
 		line:SetFormattedText(colormarkup.."Row %d: |r%s", row, text)
 	end
 
+	--local weight = addon:GetConduitWeight(addon.viewed_spec, conduitID)
 	for i = 3, 5 do
 		if _G[tooltip:GetName() .. "TextLeft" .. i] then
 			local line = textLeft[i]
@@ -782,6 +844,11 @@ addon:RegisterChatCommand("CFLoad", function(arg) addon:MacroLoad(arg) end)
 
 
 
+function addon:OpenOptionsMenu()
+LibStub("AceConfigDialog-3.0"):Open(addonName)
+
+
+end
 --[[
 
 	for i,spec in ipairs(classSpecs) do

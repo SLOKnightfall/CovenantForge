@@ -11,12 +11,15 @@ L["Options"] =true
 L["General Options"] = true
 L["Show Soulbind Name"] = true
 L["Show Node Ability Names"] = true
-L["Show Weight as Percent"] = true
+L["Show Weights"] = true
+L["Hide Weight Values That Are 0"] = true
+--L["Show Weight as Percent"] = true
 L["Disable FX"] = true
-L["Show Conduit Rank on Tooltip"] = true
-L["Soulbind Frame Scale"] = true
+L["Show Conduit Rank On Tooltip"] = true
+--L["Soulbind Frame Scale"] = true
 
 --Tabs
+L["Learned Conduits"] = true
 L["Weights"] = true
 L["Avaiable Conduits"]= true
 L["Saved Paths"] = true
