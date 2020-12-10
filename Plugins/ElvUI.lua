@@ -32,6 +32,7 @@ function MyPlugin:Initialize()
 end
 
 
+local textures = {"Ability_Monk_EssenceFont","Ability_Druid_FocusedGrowth","70_inscription_steamy_romance_novel_kit", "INV_Stone_WeightStone_06" }
 function S:CovenantForge()
 	if not (E.private.skins.blizzard.enable and E.private.skins.blizzard.collections) then return end
 	if not CovForge_PathStorage then addon.ElvUIDelay = S.CovenantForge; return  end
@@ -41,6 +42,15 @@ function S:CovenantForge()
 	frame.EditBox:SetHeight(20)
 	frame.EditBox:ClearAllPoints()
 	frame.EditBox:SetPoint("TOPLEFT",frame.Title, "BOTTOMLEFT",-75, -5)
+
+	for i, frame in ipairs(addon.PathStorageFrame.TabList) do
+		frame:StripTextures()
+		frame:CreateBackdrop()
+		frame.backdrop:SetAllPoints()
+		frame:StyleButton(nil, true)
+
+		frame.TabardEmblem:SetTexture(("Interface/ICONS/%s"):format(textures[i]))
+	end
 end
 
 S:AddCallbackForAddon('CovenantForge') 
