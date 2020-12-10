@@ -1,7 +1,11 @@
 <Bindings>
 	<Binding name= "COVENANTFORGE_BINDING_TOGGLE_SOULBINDS" hidden="false" header="COVENANTFORGE" category="Addons">
 		if UIParentLoadAddOn("Blizzard_Soulbinds") then
-		SoulbindViewer:Open();
+		if SoulbindViewer:IsShown() then
+			SoulbindViewer:Hide();
+		else
+			SoulbindViewer:Open();
+		end
 	end	
 	</Binding>
 
