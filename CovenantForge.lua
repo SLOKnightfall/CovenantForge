@@ -213,6 +213,7 @@ local SoulbindConduitNodeEvents =
 	"PLAYER_SPECIALIZATION_CHANGED",
 	"SOULBIND_NODE_LEARNED",
 	"SOULBIND_PATH_CHANGED",
+	"SOULBIND_ACTIVATED",
 }
 
 function addon:OnEnable()
@@ -608,7 +609,16 @@ function addon:Update()
 		f.soulbindName:SetText(C_Soulbinds.GetSoulbindData(soulbindID).name)
 
 		local selectedTotal, unlockedTotal, nodeMax, conduitMax
-		if addon.Profile.ShowWeights then 
+		if addon.Profile.ShowWeights then
+			if buttonIndex == C_Soulbinds.GetActiveSoulbindID() then
+				f.soulbindWeight:ClearAllPoints()
+				f.soulbindWeight:SetPoint("BOTTOMLEFT", 0, 45)
+				f.soulbindWeight:SetPoint("BOTTOMRIGHT")
+			else 
+				f.soulbindWeight:ClearAllPoints()
+				f.soulbindWeight:SetPoint("BOTTOMLEFT", 0, 25)
+				f.soulbindWeight:SetPoint("BOTTOMRIGHT")
+			end 
 			f.soulbindWeight:Show()
 			selectedTotal, unlockedTotal, nodeMax, conduitMax = addon:GetSoulbindWeight(soulbindID)
 			f.soulbindWeight:SetText(selectedTotal .. "("..nodeMax + conduitMax..")" )

@@ -21,7 +21,7 @@
 		<Layer level="OVERLAY">
 				<FontString parentKey="soulbindWeight" inherits="GameFontHighlightMedium" text="">
 					<Anchors>
-						<Anchor point="BOTTOMLEFT"  y="15" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMLEFT"  y="25" relativePoint="BOTTOMLEFT"/>
 						<Anchor point="BOTTOMRIGHT"  relativePoint="BOTTOMRIGHT"/>
 					</Anchors>
 					<Shadow>
