@@ -428,7 +428,8 @@ function addon:UpdateWeightList()
 			--icon:SetRelativeWidth(1)
 			container:AddChild(Icon)
 
-			local ileveldata = weights[addon.viewed_spec][name]
+
+			local ileveldata = (weights[addon.viewed_spec] and weights[addon.viewed_spec][name])
 			for i, data in pairs(ilevels) do
 				if i ~= 1 then 
 					local editbox = AceGUI:Create("EditBox")
@@ -479,7 +480,8 @@ function addon:UpdateWeightList()
 		for soulbindID, sb_powers in pairs(powers) do
 			local soulbind_data = C_Soulbinds.GetSoulbindData(soulbindID)
 			for i, spellID in pairs(sb_powers) do
-				local name = soulbind_data.name..": "..GetSpellInfo(spellID) or ""
+				local spellname = GetSpellInfo(spellID)
+				local name = soulbind_data.name..": "..spellname or ""
 				local desc = GetSpellDescription(spellID)
 				local _,_, icon = GetSpellInfo(spellID)
 				local titleColor = ORANGE_FONT_COLOR_CODE
@@ -500,7 +502,7 @@ function addon:UpdateWeightList()
 				container:AddChild(Icon)
 					--scroll:AddChild(container)
 
-				local ileveldata = weights[addon.viewed_spec][name]
+				local ileveldata = (weights[addon.viewed_spec] and  weights[addon.viewed_spec][spellname])
 
 				local editbox = AceGUI:Create("EditBox")
 				--editbox:SetLabel(data)
@@ -509,6 +511,9 @@ function addon:UpdateWeightList()
 				editbox.button:ClearAllPoints()
 				editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
 				editbox:SetDisabled(addon.savedPathdb.char.selectedProfile <= defaultindex)
+					editbox:SetCallback("OnEnterPressed", function(self,event, key) 
+						UpdateWeightData(spellname, 1, key)
+					end)
 
 				if ileveldata then 
 					editbox:SetText(ileveldata[1] or 0)
