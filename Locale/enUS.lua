@@ -13,7 +13,7 @@ L["Show Soulbind Name"] = true
 L["Show Node Ability Names"] = true
 L["Show Weights"] = true
 L["Hide Weight Values That Are 0"] = true
---L["Show Weight as Percent"] = true
+L["Show Weight as Percent"] = true
 L["Disable FX"] = true
 L["Show Conduit Rank On Tooltip"] = true
 --L["Soulbind Frame Scale"] = true
@@ -42,3 +42,7 @@ COVENATNFORGE_CREATE_PATH = "Create Path"
 L["Name Already Exists"] = true
 L["Requires the Forge of Bonds to modify."] = true
 L["Saved Path %s has been loaded."] = true
+
+
+
+L["Percent Value"] = true

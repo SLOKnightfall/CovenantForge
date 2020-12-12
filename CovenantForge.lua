@@ -119,13 +119,13 @@ local options = {
 					arg = "ShowWeights",
 				},
 
-				--[[ShowAsPercent = {
+				ShowAsPercent = {
 					order = 4,
 					name = L["Show Weight as Percent"],
 					type = "toggle",
 					width = "full",
 					arg = "ShowAsPercent",
-				},]]
+				},
 
 				disableFX = {
 					order = 5.1,
@@ -162,6 +162,7 @@ local pathDefaults = {
 local weightDefaults = {
 	class ={
 		weights = {},
+		base = {},
 	},
 }
 
@@ -501,14 +502,14 @@ function addon:UpdateConduitList()
 					local weight = addon:GetConduitWeight(addon.viewed_spec, i)
 					if weight then
 						if weight > 0 then
-							--if addon.Profile.ShowAsPercent then 
-								--weight = addon:GetWeightPercent(weight).."%"
-							--end
+							if addon.Profile.ShowAsPercent then 
+								weight = addon:GetWeightPercent(weight).."%"
+							end
 							weight = GREEN_FONT_COLOR_CODE.."(+"..weight..")"
 						elseif weight < 0 then
-							--if addon.Profile.ShowAsPercent then 
-								--weight = addon:GetWeightPercent(weight).."%"
-							--end
+							if addon.Profile.ShowAsPercent then 
+								weight = addon:GetWeightPercent(weight).."%"
+							end
 							weight = RED_FONT_COLOR_CODE.."("..weight..")"
 						else
 							weight = ""
@@ -681,9 +682,9 @@ function addon:Update()
 				sign = ""
 			end
 
-			--if addon.Profile.ShowAsPercent then 
-				--weight = sign..addon:GetWeightPercent(weight).."%"
-			--end
+			if addon.Profile.ShowAsPercent then 
+				weight = sign..addon:GetWeightPercent(weight).."%"
+			end
 		elseif weight and weight == 0 and addon.Profile.HideZeroValues then 
 			weight = ""
 		end
@@ -706,19 +707,19 @@ function addon:Update()
 			local percent = addon:GetWeightPercent(weight)
 
 			if addon.Profile.ShowWeights and weight ~=0 then 
-				--[[if addon.Profile.ShowAsPercent then 
+				if addon.Profile.ShowAsPercent then 
 					if percent > 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..GREEN_FONT_COLOR_CODE.." (+"..percent.."%)");
 					elseif percent < 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..RED_FONT_COLOR_CODE.." ("..percent.."%)");
 					end
-				else]]
+				else
 					if weight > 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..GREEN_FONT_COLOR_CODE.." (+"..weight..")");
 					elseif weight < 0 then 
 						conduitButton.ItemLevel:SetText(ilevelText..RED_FONT_COLOR_CODE.." ("..weight..")");
 					end
-				--end
+				end
 			else 
 				conduitButton.ItemLevel:SetText(ilevelText);
 			end

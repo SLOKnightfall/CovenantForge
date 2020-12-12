@@ -40,6 +40,7 @@ local CLASS_SPECS ={{71,72,73},{65,66,70},{253,254,255},{259,260,261},{256,257,2
 local WeightProfiles = {}
 local ProfileTable = {}
 local Weights = {}
+local BaseValue = {}
 local ilevels = {}
 local ilevelData = {}
 local powers = {}
@@ -68,6 +69,7 @@ end
 local function SelectProfile(index)
 	if not WeightProfiles[index] then  SelectProfile(1) end
 	Weights = WeightProfiles[index].weights
+	BaseValue = WeightProfiles[index].base
 	addon.savedPathdb.char.selectedProfile = index
 	addon:UpdateWeightList()
 end
@@ -86,6 +88,7 @@ function addon:BuildWeightData()
 	local classSpecs = CLASS_SPECS[classID]
 	for profile, weightData in pairs(addon.Weights) do
 		local Weights = {}
+		local baseValue = {} 
 		for i,spec in ipairs(classSpecs) do
 			if addon.Weights[profile][spec] then 
 				local data = addon.Weights[profile][spec][covenantID]
@@ -100,17 +103,19 @@ function addon:BuildWeightData()
 						ilevel[ilevelData] = conduitData[index]
 					end
 					Weights[spec][name] = ilevel
+					baseValue[spec] = addon.BaseValues[profile][spec][covenantID]
 				end
 			end
 		end
-		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= Weights})
+		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= Weights, ["base"] = baseValue })
 		table.insert(ProfileTable, L[profile])
 		defaultindex = defaultindex + 1
 	end
 
 	local profileList = self.weightdb.class.weights or {}
 	for profile, weightData in pairs(profileList) do
-		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= weightData})
+		local baseValue = self.weightdb.class.base[profile]
+		table.insert(WeightProfiles, {["name"] = profile, ["weights"]= weightData, ["base"] = baseValue})
 		table.insert(ProfileTable, profile)
 	end
 
@@ -254,22 +259,26 @@ end
 
 function addon:GetWeightPercent(weight)
 	if not weight then return 0 end
-	local percent = weight/WEIGHT_BASE
-
-	 --return percent>=0 and math.floor(percent+0.5) or math.ceil(percent-0.5)
- return  tonumber(string.format("%.2f", percent))
+	--local percent = weight/WEIGHT_BASE
+	BaseValue[addon.viewed_spec] = BaseValue[addon.viewed_spec] or 100
+	local templateDPS = BaseValue[addon.viewed_spec]
+	local formula = 100 * ((templateDPS + weight) / templateDPS - 1)
+	return  tonumber(string.format("%.2f", formula))
 end
 
 
 local function CreateNewWeightProfile(name)
 	local profileList = addon.weightdb.class.weights
+	local baseValue = addon.weightdb.class.base
 	local _, _, classID = UnitClass("player")
 	local covenantID = C_Covenants.GetActiveCovenantID();
 	local classSpecs = CLASS_SPECS[classID]
 	if not profileList[name] then 
 		profileList[name] = {}
+		baseValue[name] = {}
 		for _, specID in ipairs(classSpecs) do
 			profileList[name][specID] = {{},{},{}}
+			baseValue[name][specID] = 100
 		end
 	end
 	addon:BuildWeightData()
@@ -279,12 +288,14 @@ end
 
 local function CopyWeightProfile(name)
 	local profileList = addon.weightdb.class.weights
+	local baseValue = addon.weightdb.class.base
 	local selectedProfile = addon.savedPathdb.char.selectedProfile
 	local selectedName = WeightProfiles[selectedProfile].name
 	local weights = CopyTable(Weights)
+	local base = CopyTable(BaseValue)
 	profileList[name] = weights
 
-	table.insert(WeightProfiles, {["name"] = name, ["weights"]= Weights})
+	table.insert(WeightProfiles, {["name"] = name, ["weights"]= weights, ["base"] = base })
 	table.insert(ProfileTable, name)
 	addon:UpdateWeightList()
 end
@@ -292,12 +303,15 @@ end
 
 local function DeleteWeightProfile(name)
 	local profileList = addon.weightdb.class.weights
+	local baseValue = addon.weightdb.class.base
 	profileList[name] = nil
+	baseValue[name] = nil
 	SelectProfile(1)
 	addon:BuildWeightData()
 	addon:UpdateWeightList()
 	addon.Update()
 end
+
 
 local function UpdateWeightData(name, ilevel, value)
 --Weights[specID][name]
@@ -308,8 +322,11 @@ local function UpdateWeightData(name, ilevel, value)
 	addon.Update()
 end
 
-
-
+local function UpdatePercentData(value)
+	BaseValue[tonumber(addon.viewed_spec)] = tonumber(value)
+	addon:UpdateWeightList()
+	addon.Update()
+end
 
 
 local filterValue = 1
@@ -325,6 +342,7 @@ function addon:UpdateWeightList()
 
 	local selectedProfile = addon.savedPathdb.char.selectedProfile
 	local weights = WeightProfiles[selectedProfile].weights
+	local baseValue = WeightProfiles[selectedProfile].base
 
 	scroll = AceGUI:Create("ScrollFrame")
 	scroll:SetLayout("Flow") -- probably?
@@ -354,7 +372,7 @@ function addon:UpdateWeightList()
 
 	dropdown = AceGUI:Create("Dropdown")
 	dropdown:SetFullWidth(false)
-	dropdown:SetWidth(225)
+	dropdown:SetWidth(125)
 	dropdown:SetList(filter)
 	dropdown:SetValue(filterValue)
 	dropdown:SetCallback("OnValueChanged", 
@@ -368,6 +386,24 @@ function addon:UpdateWeightList()
 			addon:UpdateWeightList()
 		end)
 	scroll:AddChild(dropdown)
+
+	local editbox = AceGUI:Create("EditBox")
+	editbox:SetLabel(L["Percent Value"])
+	editbox:SetWidth(80)
+	editbox:SetHeight(40)
+	editbox.editbox:SetTextInsets(0,-5, 0, 0)
+	editbox.button:ClearAllPoints()
+	editbox.button:SetPoint("LEFT", editbox.frame, "RIGHT", 0 , -8)
+	editbox:SetDisabled(addon.savedPathdb.char.selectedProfile <= defaultindex)
+	editbox:SetCallback("OnEnterPressed", function(self,event, key) 
+		UpdatePercentData(key)
+	end)
+
+	local basedata = (baseValue[addon.viewed_spec])
+	if basedata then 
+		editbox:SetText(basedata)
+	end
+	scroll:AddChild(editbox)
 
 	for i, typedata in pairs(filteredList) do
 		local index = i
