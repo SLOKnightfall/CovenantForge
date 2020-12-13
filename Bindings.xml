@@ -1,6 +1,6 @@
 <Bindings>
 	<Binding name= "COVENANTFORGE_BINDING_TOGGLE_SOULBINDS" hidden="false" header="COVENANTFORGE" category="Addons">
-		if UIParentLoadAddOn("Blizzard_Soulbinds") then
+		if UIParentLoadAddOn("Blizzard_Soulbinds") and C_Covenants.GetActiveCovenantID() ~=0 then
 		if SoulbindViewer:IsShown() then
 			SoulbindViewer:Hide();
 		else

@@ -191,13 +191,17 @@ function addon:OnInitialize()
 end
 
 function addon:EventHandler(event, arg1 )
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_Soulbinds" then 
+	if event == "ADDON_LOADED" and arg1 == "Blizzard_Soulbinds" and C_Covenants.GetActiveCovenantID() ~= 0 then 
 		C_Timer.After(0, function() addon.Init:CreateSoulbindFrames() end)
 
 		self:SecureHook(SoulbindViewer, "Open", function()  C_Timer.After(.05, function() addon:Update() end) end , true)
 			--addon:Hook(ConduitListConduitButtonMixin, "Init", "ConduitRank", true)
 		self:SecureHook(SoulbindViewer, "SetSheenAnimationsPlaying", "StopAnimationFX")
 		self:SecureHook(SoulbindTreeNodeLinkMixin, "SetState", "StopNodeFX")
+		self:UnregisterEvent("ADDON_LOADED")
+	elseif event == "COVENANT_CHOSEN" then 
+		addon:EventHandler("ADDON_LOADED", "Blizzard_Soulbinds")
+		addon:OnEnable()
 		self:UnregisterEvent("ADDON_LOADED")
 	end
 
@@ -218,6 +222,11 @@ local SoulbindConduitNodeEvents =
 }
 
 function addon:OnEnable()
+	--If not part of a covenant wait until one is chosen
+	if C_Covenants.GetActiveCovenantID() == 0 then
+		addon:RegisterEvent("COVENANT_CHOSEN", "EventHandler" )
+		return 
+	end
 	addon:BuildWeightData()
 	addon:GetClassConduits()
 	local spec = GetSpecialization()
