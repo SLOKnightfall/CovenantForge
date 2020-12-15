@@ -335,7 +335,7 @@ function addon:UpdateWeightList()
 	if not SoulbindViewer or (SoulbindViewer and not SoulbindViewer:IsShown()) or
  		not addon.scrollcontainer then return end	
 
- 	local filter = {"All", 	Soulbinds.GetConduitName(0),Soulbinds.GetConduitName(1),Soulbinds.GetConduitName(2), "Soulbinds"}
+ 	local filter = {L["All"], 	Soulbinds.GetConduitName(0),Soulbinds.GetConduitName(1),Soulbinds.GetConduitName(2), L["Soulbinds"]}
 	local scrollcontainer = addon.scrollcontainer
 	scrollcontainer:ReleaseChildren()
 	scrollcontainer:SetPoint("TOPLEFT", addon.PathStorageFrame,"TOPLEFT", 0, -25)
@@ -434,9 +434,9 @@ function addon:UpdateWeightList()
 			scroll:AddChild(label)
 
 		for i, data in pairs(typedata) do
-			local name = data[1]
-			local type = Soulbinds.GetConduitName(data[3])
 			local spellID = data[2]
+			local name = GetSpellInfo(spellID) or data[1]
+			local type = Soulbinds.GetConduitName(data[3])
 			local desc = GetSpellDescription(spellID)
 			local _,_, icon = GetSpellInfo(spellID)
 			local titleColor = ORANGE_FONT_COLOR_CODE
@@ -499,7 +499,7 @@ function addon:UpdateWeightList()
 		topHeading:SetHeight(5)
 
 		local label = AceGUI:Create("Label") 
-		label:SetText("Soulbinds")
+		label:SetText(L["Soulbinds"])
 
 		local covenantData = C_Covenants.GetCovenantData(C_Covenants.GetActiveCovenantID())
 		label:SetImage("Interface/Buttons/UI-OptionsButton")

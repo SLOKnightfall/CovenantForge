@@ -1,4 +1,4 @@
-﻿## Interface: 90002
+## Interface: 90002
 ## Title: CovenantForge (@project-version@)
 ## Version: @project-version@
 ## Game Version: 9.0.2
@@ -26,6 +26,7 @@ Libs\LibDropdown-1.0\lib.xml
 #Locale
 Locale\enUS.lua
 Locale\ruRU.lua
+Locale\zhCN.lua
 #Core files
 CovenantForge.xml
 

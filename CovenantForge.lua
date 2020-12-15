@@ -435,7 +435,7 @@ function addon:UpdateConduitList()
 	if not SoulbindViewer or (SoulbindViewer and not SoulbindViewer:IsShown()) or
  		not addon.scrollcontainer then return end
 
- 	local filter = {"All", 	Soulbinds.GetConduitName(0),Soulbinds.GetConduitName(1),Soulbinds.GetConduitName(2), "Soulbinds"}
+ 	local filter = {L["All"], 	Soulbinds.GetConduitName(0),Soulbinds.GetConduitName(1),Soulbinds.GetConduitName(2), L["Soulbinds"]}
 
 	scrollcontainer:ReleaseChildren()
 	scrollcontainer:SetPoint("TOPLEFT", addon.PathStorageFrame,"TOPLEFT", 0, -25)
@@ -495,9 +495,9 @@ function addon:UpdateConduitList()
 		for i, data in pairs(typedata) do
 			for _,spec in ipairs(data[4]) do
 				if addon.viewed_spec == spec then 
-					local name = data[1]
-					local type = Soulbinds.GetConduitName(data[3])
 					local spellID = data[2]
+					local name = GetSpellInfo(spellID) or data[1]
+					local type = Soulbinds.GetConduitName(data[3])
 					local desc = GetSpellDescription(spellID)
 					local _,_, icon = GetSpellInfo(spellID)
 					local titleColor = ORANGE_FONT_COLOR_CODE
@@ -529,7 +529,7 @@ function addon:UpdateConduitList()
 					local label = AceGUI:Create("Label") 
 					label:SetText(text)
 					label:SetImage(icon)
-					label:SetFont("Fonts\\FRIZQT__.TTF", 12)
+					label:SetFont(GameFontNormal:GetFont(), 12)
 					label:SetImageSize(30,30)
 					label:SetRelativeWidth(1)
 					scroll:AddChild(label)
@@ -546,7 +546,7 @@ function addon:UpdateConduitList()
 		scroll:AddChild(topHeading)
 
 		local label = AceGUI:Create("Label") 
-		label:SetText("Soulbinds")
+		label:SetText(L["Soulbinds"])
 
 		local covenantData = C_Covenants.GetCovenantData(C_Covenants.GetActiveCovenantID());
 		label:SetImage("Interface/Buttons/UI-OptionsButton")
@@ -594,7 +594,7 @@ function addon:UpdateConduitList()
 				local label = AceGUI:Create("Label") 
 				label:SetText(text)
 				label:SetImage(icon)
-				label:SetFont("Fonts\\FRIZQT__.TTF", 12)
+				label:SetFont(GameFontNormal:GetFont(), 12)
 				label:SetImageSize(30,30)
 				label:SetRelativeWidth(1)
 				scroll:AddChild(label)
