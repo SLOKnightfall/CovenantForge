@@ -7,7 +7,7 @@ _G["BINDING_HEADER_COVENANTFORGE"] = addonName
 _G["BINDING_NAME_COVENANTFORGE_BINDING_TOGGLE_SOULBINDS"] = "Toggle Soulbind Viewer"
 
 --Options
-L["Options"] =true
+L["Options"] = true
 L["General Options"] = true
 L["Show Soulbind Name"] = true
 L["Show Node Ability Names"] = true
