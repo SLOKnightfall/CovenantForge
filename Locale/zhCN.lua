@@ -1,3 +1,5 @@
+if GetLocale() ~= "zhCN" then return end
+
 local addonName, addon = ...
 local L = _G.LibStub("AceLocale-3.0"):NewLocale(addonName, "zhCN", false, true)
 _G.alal=L

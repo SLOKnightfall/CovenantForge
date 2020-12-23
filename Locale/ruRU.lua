@@ -1,6 +1,6 @@
 if GetLocale() ~= "ruRU" then return end
 local addonName, addon = ...
-local L = _G.LibStub("AceLocale-3.0"):NewLocale(addonName, "ruRU", true, true)
+local L = _G.LibStub("AceLocale-3.0"):NewLocale(addonName, "ruRU", false, true)
 
 if not L then return end
 
