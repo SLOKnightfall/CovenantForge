@@ -187,11 +187,14 @@ function addon:OnInitialize()
 
 
 	addon:RegisterEvent("ADDON_LOADED", "EventHandler" )
+	addon:RegisterEvent("PLAYER_LEVEL_UP", "EventHandler" )
 
 end
 
+
+
 function addon:EventHandler(event, arg1 )
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_Soulbinds" and C_Covenants.GetActiveCovenantID() ~= 0 then 
+	if event == "ADDON_LOADED" and arg1 == "Blizzard_Soulbinds" and C_Covenants.GetActiveCovenantID() ~= 0 and UnitLevel("player") == 60 then 
 		C_Timer.After(0, function() addon.Init:CreateSoulbindFrames() end)
 
 		self:SecureHook(SoulbindViewer, "Open", function()  C_Timer.After(.05, function() addon:Update() end) end , true)
@@ -199,13 +202,25 @@ function addon:EventHandler(event, arg1 )
 		self:SecureHook(SoulbindViewer, "SetSheenAnimationsPlaying", "StopAnimationFX")
 		self:SecureHook(SoulbindTreeNodeLinkMixin, "SetState", "StopNodeFX")
 		self:UnregisterEvent("ADDON_LOADED")
-	elseif event == "COVENANT_CHOSEN" then 
-		addon:EventHandler("ADDON_LOADED", "Blizzard_Soulbinds")
-		addon:OnEnable()
-		self:UnregisterEvent("ADDON_LOADED")
-	end
+	elseif (event == "COVENANT_CHOSEN" and UnitLevel("player") == 60) or (event == "PLAYER_LEVEL_UP" and arg1 == 60 and C_Covenants.GetActiveCovenantID() ~= 0) then
+		if IsAddOnLoaded("Blizzard_Soulbinds") then 
+			C_Timer.After(0, function() addon.Init:CreateSoulbindFrames() end)
 
+			self:SecureHook(SoulbindViewer, "Open", function()  C_Timer.After(.05, function() addon:Update() end) end , true)
+				--addon:Hook(ConduitListConduitButtonMixin, "Init", "ConduitRank", true)
+			self:SecureHook(SoulbindViewer, "SetSheenAnimationsPlaying", "StopAnimationFX")
+			self:SecureHook(SoulbindTreeNodeLinkMixin, "SetState", "StopNodeFX")
+			self:UnregisterEvent("ADDON_LOADED")
+		else
+			addon:EventHandler("ADDON_LOADED", "Blizzard_Soulbinds")
+			addon:OnEnable()
+			self:UnregisterEvent("ADDON_LOADED")
+			self:UnregisterEvent("PLAYER_LEVEL_UP")
+		end
+	end
 end
+
+
 
 local SoulbindConduitNodeEvents =
 {
@@ -227,6 +242,7 @@ function addon:OnEnable()
 		addon:RegisterEvent("COVENANT_CHOSEN", "EventHandler" )
 		return 
 	end
+
 	addon:BuildWeightData()
 	addon:GetClassConduits()
 	local spec = GetSpecialization()
