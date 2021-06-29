@@ -721,7 +721,8 @@ function addon:Update()
 		end
 	end
 
-	for conduitType, conduitData in ipairs(SoulbindViewer.ConduitList:GetLists()) do
+local dataProvider = SoulbindViewer.ConduitList.ScrollBox:GetDataProvider();
+	for conduitType, conduitData in ipairs(dataProvider) do
 		for conduitButton in SoulbindViewer.ConduitList.ScrollBox.ScrollTarget.Lists[conduitType].pool:EnumerateActive() do
 			local conduitID = conduitButton.conduitData.conduitID
 			local conduitItemLevel = conduitButton.conduitData.conduitItemLevel
