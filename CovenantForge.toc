@@ -1,7 +1,7 @@
-## Interface: 90100
+## Interface: 100007
 ## Title: CovenantForge (@project-version@)
 ## Version: @project-version@
-## Game Version: 9.1
+## Game Version: 10.0.7
 ## Author: SLOKnightfall
 ## Notes: 
 ## OptionalDeps: ElvUI, 
